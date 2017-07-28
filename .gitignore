@@ -100,3 +100,4 @@ fabric.properties
 
 /target/
 amk-smpp-connector.iml
+!/amk-smpp-connector.iml
