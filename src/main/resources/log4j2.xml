@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status = "WARN">
+    <Appenders>
+        <Console name = "ConsoleAppender" target = "SYSTEM_OUT">
+            <PatternLayout
+		            pattern =
+				            "[%style{%t-%T}{yellow}][%highlight{%-5p}{DEBUG=magenta}][%style{%d{d-MM-yyyy:HH:mm:ss.SSS}}{green}] - %highlight{%l} -> %style{%m}{blink,blue} %n %throwable{full}" />
+        </Console>
+    </Appenders>|
+    <Loggers>
+        <Root level = "DEBUG">
+            <AppenderRef ref = "ConsoleAppender" />
+        </Root>
+    </Loggers>
+</Configuration>

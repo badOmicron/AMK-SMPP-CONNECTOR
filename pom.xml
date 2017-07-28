@@ -1,0 +1,337 @@
+<?xml version="1.0"?>
+<project xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation = "http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns = "http://maven.apache.org/POM/4.0.0">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.amk.dropwizard.platform</groupId>
+		<artifactId>plataforma-tiempo-aire</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+	<groupId>com.amk</groupId>
+	<artifactId>amk-smpp-connector</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>amk-smpp-connector</name>
+	<url>http://maven.apache.org</url>
+	
+	
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		<selenium.version>3.0.1</selenium.version>
+		<mockito.version>2.7.19</mockito.version>
+		<powermock.version>1.7.0</powermock.version>
+		<opensmpp.version>3.0.0</opensmpp.version>
+		<slf4j.version>1.7.2</slf4j.version>
+	</properties>
+	
+	<scm>
+		<developerConnection>scm:ssh://git@ic.amick.mx:1022/dropwizard-bundles/dropwizard-rabbitmq.git
+		</developerConnection>
+		<connection>scm:git:ssh://git@ic.amick.mx:1022/dropwizard-bundles/dropwizard-rabbitmq.git</connection>
+		<tag>HEAD</tag>
+	</scm>
+	
+	<!--<ciManagement>-->
+	<!--<system>jenkins</system>-->
+	<!--<url>https://ic.amick.mx/jenkins/job/dropwizard-cassandra/</url>-->
+	<!--</ciManagement>-->
+	
+	<distributionManagement>
+		<repository>
+			<id>amk-releases</id>
+			<name>AMK Releases</name>
+			<url>https://ic.amick.mx/nexus/repository/maven-releases/</url>
+		</repository>
+		<snapshotRepository>
+			<id>amk-snapshots</id>
+			<name>AMK Snapshots</name>
+			<url>https://ic.amick.mx/nexus/repository/maven-snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
+	
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.dropwizard</groupId>
+				<artifactId>dropwizard-bom</artifactId>
+				<version>${dropwizard.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+	
+	
+	<dependencies>
+		
+		<!--OPEN SMPP-->
+		<dependency>
+			<groupId>org.opensmpp</groupId>
+			<artifactId>opensmpp-core</artifactId>
+			<version>${opensmpp.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.opensmpp</groupId>
+			<artifactId>opensmpp-charset</artifactId>
+			<version>${opensmpp.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.opensmpp</groupId>
+			<artifactId>opensmpp-sim</artifactId>
+			<version>${opensmpp.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.opensmpp</groupId>
+			<artifactId>opensmpp-client</artifactId>
+			<version>${opensmpp.version}</version>
+		</dependency>
+		
+		<!--LOGGER-->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>2.8.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>2.8.2</version>
+		</dependency>
+		
+		<!--<dependency>-->
+		<!--<groupId>org.slf4j</groupId>-->
+		<!--<artifactId>jcl-over-slf4j</artifactId>-->
+		<!--<version>${slf4j.version}</version>-->
+		<!--</dependency>-->
+		<!--<dependency>-->
+		<!--<groupId>org.slf4j</groupId>-->
+		<!--<artifactId>slf4j-api</artifactId>-->
+		<!--<version>${slf4j.version}</version>-->
+		<!--</dependency>-->
+		<!--<dependency>-->
+		<!--<groupId>org.slf4j</groupId>-->
+		<!--<artifactId>slf4j-log4j12</artifactId>-->
+		<!--<version>${slf4j.version}</version>-->
+		<!--</dependency>-->
+		
+		<!--APACHE COMMONS-->
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.0</version>
+		</dependency>
+		
+		<!--TEST-->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>${mockito.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.powermock/powermock-api-easymock -->
+		<dependency>
+			<groupId>org.powermock</groupId>
+			<artifactId>powermock-api-easymock</artifactId>
+			<version>1.7.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.easymock</groupId>
+			<artifactId>easymock</artifactId>
+			<version>3.4</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.powermock</groupId>
+			<artifactId>powermock-core</artifactId>
+			<version>${powermock.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.powermock</groupId>
+			<artifactId>powermock-module-junit4</artifactId>
+			<version>${powermock.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.powermock</groupId>
+			<artifactId>powermock-api-mockito2</artifactId>
+			<version>${powermock.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.4</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	
+	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+		
+		<plugins>
+			<!--
+			FindBugs looks for bugs in Java programs. It is based on the concept of bug patterns. A bug pattern is
+			a code idiom that is often an error. Bug patterns arise for a variety of reasons:
+			* Difficult language features
+			* Misunderstood API methods
+			* Misunderstood invariants when code is modified during maintenance
+			* Garden variety mistakes: typos, use of the wrong boolean operator
+			-->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>findbugs-maven-plugin</artifactId>
+				<version>3.0.4</version>
+				<executions>
+					<execution>
+						<id>validate</id>
+						<phase>validate</phase>
+						<configuration>
+							<effort>Max</effort>
+							<threshold>Low</threshold>
+							<xmlOutput>true</xmlOutput>
+						</configuration>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!--
+			The Checkstyle Plugin generates a report regarding the code style used by the developers. For more information
+			about Checkstyle, see http://checkstyle.sourceforge.net/.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>2.17</version>
+				<executions>
+					<execution>
+						<id>validate</id>
+						<phase>validate</phase>
+						<configuration>
+							<configLocation>amk-checkstyle.xml</configLocation>
+							<encoding>UTF-8</encoding>
+							<consoleOutput>true</consoleOutput>
+							<failOnViolation>true</failOnViolation>
+							<failsOnError>true</failsOnError>
+							<violationSeverity>warning</violationSeverity>
+						</configuration>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			
+			
+			<!--
+			The JaCoCo Maven plug-in provides the JaCoCo runtime agent to your tests and allows basic report creation.
+			If you want to have line number information included in the coverage reports or you want source code highlighting
+			the class files of the test target must be compiled with debug information.
+			 -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.7.9</version>
+				<executions>
+					<execution>
+						<id>pre-unit-test</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>CLASS</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.70</minimum>
+										</limit>
+										<limit>
+											<counter>BRANCH</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.65</minimum>
+										</limit>
+									</limits>
+									<excludes>
+										<exclude>com.amk.dropwizard.cassandra.CassandraBundle.SessionProxy</exclude>
+									</excludes>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+					<execution>
+						<id>post-unit-test</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>post-unit-report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+						<configuration>
+							<!-- Sets the path to the file which contains the execution data. -->
+							<dataFile>target/jacoco.exec</dataFile>
+							<!-- Sets the output directory for the code coverage report. -->
+							<outputDirectory>target/jacoco-ut</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-scm-plugin</artifactId>
+				<version>1.9.5</version>
+			</plugin>
+			
+			<!--
+			The Maven Changelog Plugin generates reports regarding the recent changes in your Software Configuration
+			Management or SCM. These reports include the changelog report, developer activity report and the
+			file activity report.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-changelog-plugin</artifactId>
+				<version>2.3</version>
+			</plugin>
+			
+			<!--
+			Performs a Maven release build from your current working copy. This release can be seen as an atomic
+			operationType that will be rolled back in case of an error. There is no need to call any other goals to prepare
+			the project for the release or cleanup the project afterwards.
+			-->
+			<plugin>
+				<groupId>com.itemis.maven.plugins</groupId>
+				<artifactId>unleash-maven-plugin</artifactId>
+				<version>2.5.0</version>
+			</plugin>
+		
+		</plugins>
+	
+	</build>
+</project>
