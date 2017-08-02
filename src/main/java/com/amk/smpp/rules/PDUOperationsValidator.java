@@ -16,7 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.amk.smpp.PDUOperation;
-import com.amk.smpp.util.SmppUtil;
+import com.amk.smpp.util.SMPPUtil;
 
 /** TODO Descripción de las responsabilidades de la clase, patrones utilizados, algoritmos utilizados.
  *
@@ -32,22 +32,22 @@ public interface PDUOperationsValidator extends Ruleable {
 
     /**
      * TODO
-     * @param pduOperation .
+     * @param object .
      */
-    static void validNotNull(final PDUOperation pduOperation) {
-        if (Objects.isNull(pduOperation)) {
-            throw new IllegalArgumentException("[X] error, pduOperation can be null");
+    static void validNotNull(final Object object) {
+        if (Objects.isNull(object)) {
+            throw new IllegalArgumentException("[X] error, Object cannot be null");
         }
     }
 
     /**
      *
-     * @param pduOperation
+     * @param pduOperation .
      */
     static void validNotEmpty(final PDUOperation pduOperation) {
-        final Map< String, Object > mapAux = SmppUtil.beanProperties(pduOperation);
-        if (mapAux.values().parallelStream().anyMatch(SmppUtil.NONE_VALUE::equals)) {
-            throw new IllegalArgumentException("[X] error, pduOperation properties cannot be null or empty -> " + mapAux.toString());
+        final Map< String, Object > mapAux = SMPPUtil.beanProperties(pduOperation);
+        if (mapAux.values().parallelStream().anyMatch(SMPPUtil.NONE_VALUE::equals)) {
+            throw new IllegalArgumentException("[X] error, The following properties can not be null or empty -> " + mapAux.toString());
         }
     }
 
@@ -61,7 +61,7 @@ public interface PDUOperationsValidator extends Ruleable {
         boolean valid = Objects.nonNull(pduOperation);
         valid = valid && Objects.nonNull(pduOperation.getOperationProps());
         LOGGER.debug("validSubmit: " + valid);
-        SmppUtil.beanProperties(pduOperation.getOperationProps()).entrySet().forEach(
+        SMPPUtil.beanProperties(pduOperation.getOperationProps()).entrySet().forEach(
                 e -> LOGGER.debug(new ReflectionToStringBuilder(e, ToStringStyle.MULTI_LINE_STYLE).build()));
 
         return true;

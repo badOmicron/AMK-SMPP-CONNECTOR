@@ -22,7 +22,14 @@ import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.smpp.SmppException;
+import org.smpp.pdu.BindReceiver;
+import org.smpp.pdu.BindRequest;
+import org.smpp.pdu.BindTransciever;
+import org.smpp.pdu.BindTransmitter;
 
+import com.amk.smpp.BindingType;
+import com.amk.smpp.PDUOperation;
 import com.amk.smpp.rules.PDUOperationsValidator;
 
 
@@ -32,28 +39,39 @@ import com.amk.smpp.rules.PDUOperationsValidator;
  * @version 1.0.0
  * @since 1.0.0
  */
-public class SmppUtil {
+public class SMPPUtil {
     /**
      * Logger for class.
      */
-    private             Logger LOGGER                         = LogManager.getLogger(PDUOperationsValidator.class.getName());
+    private              Logger LOGGER                         = LogManager.getLogger(PDUOperationsValidator.class.getName());
     /**
-     * Scheduled Delivery Time Format.
+     * Scheduled Delivery Time Format. TODO este patron para el formato de la fecha es 'especial' no esta construido.
      */
-    public static final String SCHEDULED_DELIVERY_TIME_FROMAT = "YYMMDDhhmmssS";
-//    tnnp
+    public static final  String SCHEDULED_DELIVERY_TIME_FROMAT = "YYMMDDhhmmssS";
     /**
      * Invoke method error msg.
      */
-    public static final String ERROR_INVOKE                   = "ERROR";
-    public static final String NONE_VALUE                     = "NONE";
+    public static final  String ERROR_INVOKE                   = "ERROR";
+    public static final  String NONE_VALUE                     = "NONE";
+    /**
+     * Error msg.
+     */
+    private static final String INVALID_OPERATION_NULL         = "[X] Invalid Operation Type, may is null. Operation canceled.";
+    /**
+     * Error msg.
+     */
+    private static final String INVALID_BIND_MODE              = "[X] Invalid Binding Type, may is null. Operation canceled.";
+    /**
+     * Error msg.
+     */
+    private static final String INVALID_OPERATION_TYPE         = "[X] Invalid Operation Type, Operation canceled.";
 
 
     /**
-     * Creates an instance of SmppUtil.
+     * Creates an instance of SMPPUtil.
      * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
      */
-    private SmppUtil() {
+    private SMPPUtil() {
         super();
     }
 
@@ -104,7 +122,7 @@ public class SmppUtil {
     /**
      * Support method for {@link #beanProperties(Object)} <br/>
      * Helps to invoke the getter of the parsed bean.<br/>
-     * If something bad in the invoked method the returned value will be {@link #ERROR_INVOKE}
+     * If something bad in the invoked method the returned value will be {@link #NONE_VALUE}
      * @param pd PropertyDescriptor to be invoked.
      * @param bean bean that contains the invoked getter.
      * @return Value obtained from method invoked.
@@ -115,6 +133,29 @@ public class SmppUtil {
                     || pd.getReadMethod().invoke(bean).toString().isEmpty()) ? NONE_VALUE : pd.getReadMethod().invoke(bean);
         } catch (InvocationTargetException | IllegalAccessException e) {
             return ERROR_INVOKE;
+        }
+    }
+
+    /**
+     * Returns the request type according to the required bind type.
+     * @param pduOperation Operation to be performed.
+     * @return Correct request object.
+     * @throws SmppException if the {@link PDUOperation} is null.
+     */
+    public static BindRequest defineBindingType(final PDUOperation pduOperation) throws SmppException {
+        if (Objects.isNull(pduOperation.getBindingType())) {
+            pduOperation.setBindingType(BindingType.TRX);
+        }
+        switch (pduOperation.getBindingType()) {
+            case TX:
+                return new BindTransmitter();
+            case RX:
+                return new BindReceiver();
+            case TRX:
+                return new BindTransciever();
+            default:
+                System.out.println("DEFAULT");
+                throw new SmppException(INVALID_BIND_MODE);
         }
     }
 }

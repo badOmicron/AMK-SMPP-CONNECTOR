@@ -5,7 +5,6 @@ import java.io.InputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,6 +15,9 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import org.smpp.Connection;
 import org.smpp.TCPIPConnection;
 import org.smpp.pdu.Address;
+import org.smpp.pdu.CancelSMResp;
+import org.smpp.pdu.DataSMResp;
+import org.smpp.pdu.SubmitSMResp;
 import org.smpp.smscsim.DeliveryInfoSender;
 import org.smpp.smscsim.PDUProcessorGroup;
 import org.smpp.smscsim.SMSCListenerImpl;
@@ -73,10 +75,12 @@ public class AMKSmppFacadeTest {
     private Connection connection;
     private String host = "0.0.0.0";
     private int    port = 2300;
+    private AMKSmppFacade  smppFacade;
+    private BindingManager bindingManager;
 
     /**
-     * Se configura y se arranca el Simulador.
-     * @throws Exception
+     * Configuraciones varias.
+     * @throws Exception .
      */
     @Before
     public void setUp() throws Exception {
@@ -85,10 +89,17 @@ public class AMKSmppFacadeTest {
         setUpConnection();
     }
 
+    /**
+     * Configuración del Thread.
+     */
     private void setUpThread() {
         Thread.currentThread().setName("AMKSmppFacadeTest");
     }
 
+    /**
+     * Se configura y se arranca el Simulador.
+     * @throws Exception .
+     */
     private void setUpSimulator() throws Exception {
         LOGGER.debug("setUp: SMCS Simluator");
         // Puerto para el Simulador de SMCS.
@@ -113,46 +124,99 @@ public class AMKSmppFacadeTest {
     }
 
 
+    /**
+     * Configura la Conexión con el SMCS.
+     * @throws Exception .
+     */
     private void setUpConnection() throws Exception {
         connection = new TCPIPConnection(host, port);
+        smppFacade = new AMKSmppFacade(connection);
+        bindingManager = new BindingManager("hugo", "ggoohu", connection);
+        smppFacade.setBindingManager(bindingManager);
     }
-D
+
     @Test
     public void AMKSmppFacade() throws Exception {
         try {
-            AMKSmppFacade smppFacade = new AMKSmppFacade(null);
+            new AMKSmppFacade(null);
             Assert.fail();
         } catch (final Exception e) {
             // error expected
         }
         AMKSmppFacade smppFacade = new AMKSmppFacade(connection);
-        Assert.assertNotNull(connection);
+        Assert.assertNotNull(smppFacade);
     }
 
     @Test
     public void executeOperation() throws Exception {
-        LOGGER.debug("executeOperation: ");
+        submit();
+        data();
+        stop();
+    }
+
+    private void submit() throws Exception {
+        LOGGER.debug("executeOperation: " + PDUOperationTypes.SUBMIT_SMS);
         Assert.assertNotNull(connection);
-        AMKSmppFacade smppFacade = new AMKSmppFacade(connection);
         Assert.assertNotNull(smppFacade);
-        org.smpp.pdu.WrongDateFormatException w;
-        // Enviar mensaje sincrono --> Experamos la respuesta
-        PDUOperation submit = new PDUOperation();
+        // Enviar mensaje sincrono --> Se espera la respuesta.
         PDUOperationProperties props = new PDUOperationPropertiesBuilder()
                 .setSourceAddress(new Address("5529094190"))
                 .setDestAddress(new Address[]{new Address("5529094190")})
                 .build();
-        submit.setOperationProps(props);
-        submit.setOperationType(PDUOperationTypes.SUBMIT_SMS);
-        submit.setAsynchronous(false);
-        submit.setSmsMessage("Mi mensaje de prueba");
-        submit.setMessageId("MP01");
-        submit.setBindType(SmppBindTypes.TRX);
-        smppFacade.executeOperation(submit);
-
+        Message smsMessage = new Message();
+        smsMessage.setBody("Mi mensaje de prueba");
+        PDUOperation submit = PDUOperation
+                .newBuilder()
+                .withOperationProps(props)
+                .withOperationType(PDUOperationTypes.SUBMIT_SMS)
+                .withAsynchronous(false)
+                .withSmsMessage(smsMessage)
+                .withBindingType(BindingType.TRX)
+                .build();
+        SubmitSMResp response = smppFacade.executeOperation(submit);
+        String messageId = response.getMessageId();
+        messageStore.print();
+        submit.getSmsMessage().setId(messageId);
+        System.out.println(messageId);
+        System.out.println(response.getCommandStatus());
+        Assert.assertNotNull(messageStore.getMessage(messageId));
+//        cancel(submit);
     }
 
-    @After
+    private void data() throws Exception {
+        LOGGER.debug("executeOperation: " + PDUOperationTypes.DATA);
+        Assert.assertNotNull(smppFacade);
+        // Enviar mensaje sincrono --> Se espera la respuesta.
+        PDUOperationProperties props = new PDUOperationPropertiesBuilder()
+                .setSourceAddress(new Address("5529094190"))
+                .setDestAddress(new Address[]{new Address("5529094190")})
+                .build();
+        Message smsMessage = new Message();
+        smsMessage.setBody("Mi mensaje de prueba Data");
+        PDUOperation data = PDUOperation
+                .newBuilder()
+                .withOperationProps(props)
+                .withOperationType(PDUOperationTypes.DATA)
+                .withAsynchronous(false)
+                .withSmsMessage(smsMessage)
+                .withBindingType(BindingType.TRX)
+                .build();
+        DataSMResp response = smppFacade.executeOperation(data);
+        String messageId = response.getMessageId();
+        System.out.println("Message Data Id " + messageId);
+        System.out.println(response.getCommandStatus());
+        messageStore.print();
+    }
+
+    private void cancel(PDUOperation pduOperation) throws Exception {
+        LOGGER.debug("cancel: TEST");
+        pduOperation.setOperationType(PDUOperationTypes.CANCEL);
+        CancelSMResp response = smppFacade.executeOperation(pduOperation);
+        response.debugString();
+        messageStore.print();
+    }
+
+    //    @After
     public void tearDown() throws Exception {
         stop();
     }

@@ -21,7 +21,7 @@ package com.amk.smpp;
  * @version 1.0.0
  * @since 1.0.0
  */
-public enum SmppBindTypes {
+public enum BindingType {
     /**
      * A connected ESME has requested to bind as a Transmitter.
      */
@@ -50,7 +50,7 @@ public enum SmppBindTypes {
      * @param typeId - bind identifier.
      * @param description - operation description.
      */
-    SmppBindTypes(final Integer typeId, final String description) {
+    BindingType(final Integer typeId, final String description) {
         this.typeId = typeId;
         this.description = description;
     }
@@ -60,14 +60,14 @@ public enum SmppBindTypes {
      * @param bindTypeId a <code>Integer</code> representing the SMPP Operation {@link PDUOperationTypes}
      * @return {@link PDUOperationTypes}
      */
-    public static SmppBindTypes valueOf(final Integer bindTypeId) {
-        for (SmppBindTypes availableBindTypes : values()) {
-            if (availableBindTypes.getBindId().equals(bindTypeId)) {
-                return availableBindTypes;
+    public static BindingType valueOf(final Integer bindTypeId) {
+        for (BindingType availableBindingTypes : values()) {
+            if (availableBindingTypes.getBindId().equals(bindTypeId)) {
+                return availableBindingTypes;
             }
         }
         throw new IllegalArgumentException(
-                "type id '" + bindTypeId + "' is invalid to get enum SmppBindTypes");
+                "type id '" + bindTypeId + "' is invalid to get enum BindingType");
     }
 
 

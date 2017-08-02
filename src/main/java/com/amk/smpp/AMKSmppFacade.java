@@ -7,7 +7,6 @@
 
 package com.amk.smpp;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -18,11 +17,6 @@ import org.smpp.Data;
 import org.smpp.ServerPDUEvent;
 import org.smpp.Session;
 import org.smpp.SmppException;
-import org.smpp.pdu.BindReceiver;
-import org.smpp.pdu.BindRequest;
-import org.smpp.pdu.BindResponse;
-import org.smpp.pdu.BindTransciever;
-import org.smpp.pdu.BindTransmitter;
 import org.smpp.pdu.CancelSM;
 import org.smpp.pdu.CancelSMResp;
 import org.smpp.pdu.DataSM;
@@ -45,7 +39,7 @@ import org.smpp.pdu.WrongLengthOfStringException;
 import org.smpp.util.ByteBuffer;
 
 import com.amk.smpp.rules.PDUOperationsValidator;
-import com.amk.smpp.util.SmppUtil;
+import com.amk.smpp.util.SMPPUtil;
 
 /**
  * Internal implementation of the {@link SmppWrapperFacade}.<br/>
@@ -64,11 +58,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     /**
      * Error msg.
      */
-    private static final String INVALID_CONNECTION = "[X] error, Connection or Session invalid may be null";
-    /**
-     * Error msg.
-     */
-    private static final String INVALID_BIND_MODE  = "[X] Invalid bind mode, may is null. Operation canceled.";
+    private static final String INVALID_CONNECTION = "[X] error, Connection null";
     /**
      * SMCS Connection.
      */
@@ -80,6 +70,8 @@ public class AMKSmppFacade implements SmppWrapperFacade {
 
     private boolean bound = false;
 
+    private BindingManager bindingManager;
+
     /**
      * Creates an instance of AMKSmppFacade.
      *
@@ -88,7 +80,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      */
     public AMKSmppFacade(final Connection connection) {
         if (Objects.isNull(connection)) {
-            LOGGER.error(INVALID_CONNECTION);
+            LOGGER.warn(INVALID_CONNECTION);
             throw new IllegalStateException(INVALID_CONNECTION);
         }
         this.connection = connection;
@@ -112,10 +104,11 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * @see Response
      */
     @Override
-    public Response executeOperation(final PDUOperation pduOperation) throws SmppException {
+    public < E extends Response > E executeOperation(final PDUOperation pduOperation) throws SmppException {
         init();
         PDUOperationsValidator.validNotNull(pduOperation);
         PDUOperationsValidator.validNotEmpty(pduOperation);
+        PDUOperationsValidator.validNotNull(bindingManager);
         bind(pduOperation);
         switch (pduOperation.getOperationType()) {
             case SUBMIT_SMS:
@@ -130,6 +123,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             case REPLACE:
                 return replace(pduOperation);
             case CANCEL:
+                LOGGER.debug("executeOperation: CANCEL");
                 return cancel(pduOperation);
             case RECEIVE:
                 receive(pduOperation, null);
@@ -141,32 +135,11 @@ public class AMKSmppFacade implements SmppWrapperFacade {
         return null;
     }
 
-    /**
-     * Returns the request type according to the required bind type.
-     * @param pduOperation Operation to be performed.
-     * @return Correct request object.
-     * @throws SmppException if the {@link PDUOperation} is null.
-     */
-    private BindRequest defineBindType(final PDUOperation pduOperation) throws SmppException {
-        if (Objects.isNull(pduOperation.getBindType())) {
-            throw new SmppException(INVALID_BIND_MODE);
-        }
-        switch (pduOperation.getBindType()) {
-            case TX:
-                return new BindTransmitter();
-            case RX:
-                return new BindReceiver();
-            case TRX:
-                return new BindTransciever();
-            default:
-                throw new SmppException(INVALID_BIND_MODE);
-        }
-    }
 
     //    public static void main(String[] args) {
     //        PDUOperation pduOperation = new PDUOperation();
     //        pduOperation.setMessageId(UUID.randomUUID().toString());
-    //        pduOperation.setBindType(SmppBindTypes.RX);
+    //        pduOperation.setBindingType(BindingType.RX);
     //        pduOperation.setSmsMessage("mi mensaje");
     //        pduOperation.setOperationType(PDUOperationTypes.SUBMIT_SMS);
     //        final PDUOperationProperties props = new PDUOperationProperties();
@@ -178,31 +151,8 @@ public class AMKSmppFacade implements SmppWrapperFacade {
 
     private void bind(final PDUOperation pduOperation) throws SmppException {
         LOGGER.debug("bind: ");
-        if (bound) {
-            System.out.println("Already bound, unbind first.");
-            return;
-        }
-        BindResponse response = null;
-        BindRequest bindRequest = defineBindType(pduOperation);
-        bindRequest.setSystemId("hugo");
-        bindRequest.setPassword("ggoohu");
-        bindRequest.setSystemType(Data.DFLT_SYSTYPE);
-        bindRequest.setInterfaceVersion((byte) 0x34);
-        bindRequest.setAddressRange("2");
-        // send the request
-        try {
-            response = session.bind(bindRequest);
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-        assert response != null;
-        System.out.println("Bind response " + response.debugString());
-        if (response.getCommandStatus() == Data.ESME_ROK) {
-            bound = true;
-        }
-
+        this.session = this.bindingManager.bind(pduOperation);
     }
-
 
     /**
      * Creates a new instance of <code>SubmitSM</code> class, lets you set
@@ -224,8 +174,9 @@ public class AMKSmppFacade implements SmppWrapperFacade {
         try {
             request = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
             assert request != null;
-            request.setShortMessage(pduOperation.getSmsMessage());
+            request.setShortMessage(pduOperation.getSmsMessage().getBody());
             request.assignSequenceNumber(true);
+//            request.setSmDefaultMsgId(props.getSmDefaultMsgId());
             final boolean asynchronous = pduOperation.isAsynchronous();
             if (asynchronous) {
                 session.submit(request);
@@ -255,7 +206,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
         try {
             requestMulti = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
             assert requestMulti != null;
-            requestMulti.setShortMessage(pduOperation.getSmsMessage());
+            requestMulti.setShortMessage(pduOperation.getSmsMessage().getBody());
             // send the request
             final boolean asynchronous = pduOperation.isAsynchronous();
             if (asynchronous) {
@@ -290,7 +241,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             // send the request
             assert requestData != null;
             requestData.setAlertOnMsgDelivery(true);
-            requestData.setMessagePayload(new ByteBuffer(pduOperation.getSmsMessage().getBytes()));
+            requestData.setMessagePayload(new ByteBuffer(pduOperation.getSmsMessage().getBody().getBytes()));
             // send the request
             final boolean asynchronous = pduOperation.isAsynchronous();
             if (asynchronous) {
@@ -327,7 +278,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             final QuerySM requestQuery = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
             // set values
             assert requestQuery != null;
-            requestQuery.setMessageId(pduOperation.getMessageId());
+            requestQuery.setMessageId(pduOperation.getSmsMessage().getId());
             // send the request
             if (pduOperation.isAsynchronous()) {
                 session.query(requestQuery);
@@ -353,8 +304,8 @@ public class AMKSmppFacade implements SmppWrapperFacade {
         try {
             request = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
             assert request != null;
-            request.setMessageId(pduOperation.getMessageId());
-            request.setShortMessage(pduOperation.getSmsMessage());
+            request.setMessageId(pduOperation.getSmsMessage().getId());
+            request.setShortMessage(pduOperation.getSmsMessage().getBody());
             // send the request
             if (pduOperation.isAsynchronous()) {
                 session.replace(request);
@@ -380,7 +331,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
         try {
             request = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
             assert request != null;
-            request.setMessageId(pduOperation.getMessageId());
+            request.setMessageId(pduOperation.getSmsMessage().getId());
             // send the request
             if (pduOperation.isAsynchronous()) {
                 session.cancel(request);
@@ -450,7 +401,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
         try {
             request = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
             assert request != null;
-            request.setData(new ByteBuffer(pduOperation.getSmsMessage().getBytes()));
+            request.setData(new ByteBuffer(pduOperation.getSmsMessage().getBody().getBytes()));
             response = new EnquireLinkResp();
             if (pduOperation.isAsynchronous()) {
                 session.enquireLink(request);
@@ -484,7 +435,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
                 request.setSourceAddr(props.getSourceAddress());
                 Arrays.asList(props.getDestAddress()).forEach(request::setDestAddr);
                 request.setReplaceIfPresentFlag(props.getReplaceIfPresentFlag());
-//                request.setScheduleDeliveryTime(SmppUtil.transformDate(props.getScheduleDeliveryTime()));
+//                request.setScheduleDeliveryTime(SMPPUtil.transformDate(props.getScheduleDeliveryTime()));
                 request.setValidityPeriod(props.getValidityPeriod());
                 request.setEsmClass(props.getEsmClass());
                 request.setProtocolId(props.getProtocolId());
@@ -499,7 +450,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
                 requestMulti.setServiceType(props.getServiceType());
                 requestMulti.setSourceAddr(props.getSourceAddress());
                 requestMulti.setReplaceIfPresentFlag(props.getReplaceIfPresentFlag());
-                requestMulti.setScheduleDeliveryTime(SmppUtil.transformDate(props.getScheduleDeliveryTime()));
+                requestMulti.setScheduleDeliveryTime(SMPPUtil.transformDate(props.getScheduleDeliveryTime()));
                 requestMulti.setValidityPeriod(props.getValidityPeriod());
                 requestMulti.setEsmClass(props.getEsmClass());
                 requestMulti.setProtocolId(props.getProtocolId());
@@ -526,7 +477,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
                 final ReplaceSM requestReplace = new ReplaceSM();
                 // set values
                 requestReplace.setSourceAddr(props.getSourceAddress());
-                requestReplace.setScheduleDeliveryTime(SmppUtil.transformDate(props.getScheduleDeliveryTime()));
+                requestReplace.setScheduleDeliveryTime(SMPPUtil.transformDate(props.getScheduleDeliveryTime()));
                 requestReplace.setValidityPeriod(props.getValidityPeriod());
                 requestReplace.setRegisteredDelivery(props.getRegisteredDelivery());
                 requestReplace.setSmDefaultMsgId(props.getSmDefaultMsgId());
@@ -542,4 +493,19 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     }
 
 
+    /**
+     * Getter for bindingManager.
+     * @return bindingManager.
+     **/
+    public BindingManager getBindingManager() {
+        return bindingManager;
+    }
+
+    /**
+     * Setter for bindingManager.
+     * @param bindingManager expected.
+     **/
+    public void setBindingManager(final BindingManager bindingManager) {
+        this.bindingManager = bindingManager;
+    }
 }

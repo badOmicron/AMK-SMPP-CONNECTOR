@@ -26,5 +26,5 @@ public interface SmppWrapperFacade {
      * @see Response
      * @see PDUOperation
      */
-    Response executeOperation(PDUOperation pduOperation) throws SmppException;
+    < E extends Response > E executeOperation(PDUOperation pduOperation) throws SmppException;
 }

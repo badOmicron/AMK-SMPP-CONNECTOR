@@ -9,6 +9,8 @@ package com.amk.smpp;
 
 import java.io.Serializable;
 
+import javax.validation.constraints.NotNull;
+
 /**
  * A class that represents a PDU operationType over an SMMP protocol.
  *
@@ -29,15 +31,12 @@ public class PDUOperation implements Serializable {
     /**
      * Type of bind required for operationType.
      */
-    private SmppBindTypes          bindType;
-    /**
-     * ID of the submitted message. It may be used at a later stage to perform subsequent operations on the message.
-     */
-    private String                 messageId;
+    private BindingType            bindingType;
+
     /**
      * Provides encapsulation of message data with optional message encoding.
      */
-    private String                 smsMessage;
+    private Message smsMessage;
     /**
      * # This is receiving mode. If set to sync, then the application
      # waits for response after sending a request pdu. If set to sync,
@@ -47,6 +46,28 @@ public class PDUOperation implements Serializable {
      # Possible values are "sync" and "async"
      */
     private boolean asynchronous = false;
+
+    private PDUOperation(final Builder builder) {
+        setOperationType(builder.operationType);
+        setOperationProps(builder.operationProps);
+        setBindingType(builder.bindingType);
+        setSmsMessage(builder.smsMessage);
+        setAsynchronous(builder.asynchronous);
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static Builder newBuilder(@NotNull final PDUOperation copy) {
+        Builder builder = new Builder();
+        builder.operationType = copy.operationType;
+        builder.operationProps = copy.operationProps;
+        builder.bindingType = copy.bindingType;
+        builder.smsMessage = copy.smsMessage;
+        builder.asynchronous = copy.asynchronous;
+        return builder;
+    }
 
 
     /**
@@ -82,43 +103,27 @@ public class PDUOperation implements Serializable {
     }
 
     /**
-     * Getter for bindType.
-     * @return bindType.
+     * Getter for bindingType.
+     * @return bindingType.
      **/
-    public SmppBindTypes getBindType() {
-        return bindType;
+    public BindingType getBindingType() {
+        return bindingType;
     }
 
     /**
-     * Setter for bindType.
-     * @param bindType expected.
+     * Setter for bindingType.
+     * @param bindingType expected.
      **/
-    public void setBindType(final SmppBindTypes bindType) {
-        this.bindType = bindType;
+    public void setBindingType(final BindingType bindingType) {
+        this.bindingType = bindingType;
     }
 
-
-    /**
-     * Getter for messageId.
-     * @return messageId.
-     **/
-    public String getMessageId() {
-        return messageId;
-    }
-
-    /**
-     * Setter for messageId.
-     * @param messageId expected.
-     **/
-    public void setMessageId(final String messageId) {
-        this.messageId = messageId;
-    }
 
     /**
      * Getter for smsMessage.
      * @return smsMessage.
      **/
-    public String getSmsMessage() {
+    public Message getSmsMessage() {
         return smsMessage;
     }
 
@@ -126,7 +131,7 @@ public class PDUOperation implements Serializable {
      * Setter for smsMessage.
      * @param smsMessage expected.
      **/
-    public void setSmsMessage(final String smsMessage) {
+    public void setSmsMessage(final Message smsMessage) {
         this.smsMessage = smsMessage;
     }
 
@@ -144,5 +149,85 @@ public class PDUOperation implements Serializable {
      **/
     public void setAsynchronous(final boolean asynchronous) {
         this.asynchronous = asynchronous;
+    }
+
+
+    /**
+     * {@code PDUOperation} builder static inner class.
+     */
+    public static final class Builder {
+        private PDUOperationTypes      operationType;
+        private PDUOperationProperties operationProps;
+        private BindingType            bindingType;
+        private Message                smsMessage;
+        private boolean asynchronous = false;
+
+        private Builder() {
+        }
+
+        /**
+         * Sets the {@code operationType} and returns a reference to this Builder so that the methods can be chained together.
+         * @param operationType the {@code operationType} to set
+         * @return a reference to this Builder
+         */
+        @NotNull
+        public Builder withOperationType(@NotNull final PDUOperationTypes operationType) {
+            this.operationType = operationType;
+            return this;
+        }
+
+        /**
+         * Sets the {@code operationProps} and returns a reference to this Builder so that the methods can be chained together.
+         * @param operationProps the {@code operationProps} to set
+         * @return a reference to this Builder
+         */
+        @NotNull
+        public Builder withOperationProps(@NotNull final PDUOperationProperties operationProps) {
+            this.operationProps = operationProps;
+            return this;
+        }
+
+        /**
+         * Sets the {@code bindingType} and returns a reference to this Builder so that the methods can be chained together.
+         * @param bindingType the {@code bindingType} to set
+         * @return a reference to this Builder
+         */
+        @NotNull
+        public Builder withBindingType(@NotNull final BindingType bindingType) {
+            this.bindingType = bindingType;
+            return this;
+        }
+
+        /**
+         * Sets the {@code smsMessage} and returns a reference to this Builder so that the methods can be chained together.
+         * @param smsMessage the {@code smsMessage} to set
+         * @return a reference to this Builder
+         */
+        @NotNull
+        public Builder withSmsMessage(@NotNull final Message smsMessage) {
+            this.smsMessage = smsMessage;
+            return this;
+        }
+
+        /**
+         * Sets the {@code asynchronous} and returns a reference to this Builder so that the methods can be chained together.
+         * @param asynchronous the {@code asynchronous} to set
+         * @return a reference to this Builder
+         */
+        @NotNull
+        public Builder withAsynchronous(final boolean asynchronous) {
+            this.asynchronous = asynchronous;
+            return this;
+        }
+
+        /**
+         * Returns a {@code PDUOperation} built from the parameters previously set.
+         *
+         * @return a {@code PDUOperation} built with parameters of this {@code PDUOperation.Builder}
+         */
+        @NotNull
+        public PDUOperation build() {
+            return new PDUOperation(this);
+        }
     }
 }
