@@ -48,7 +48,7 @@ public class PDUOperationProperties {
     /**
      * The short message is to be scheduled by the MC for delivery. Set to NULL for immediate message delivery.
      */
-    private Date   scheduleDeliveryTime = new Date();
+    private Date      scheduleDeliveryTime;
     /**
      * The validity period of this message. Set to NULL to request the MC default validity period. Must be a number.
      */
@@ -119,7 +119,7 @@ public class PDUOperationProperties {
      * Creates an instance of PDUOperationProperties.
      * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
      */
-    public PDUOperationProperties() {
+    private PDUOperationProperties() {
         super();
     }
 

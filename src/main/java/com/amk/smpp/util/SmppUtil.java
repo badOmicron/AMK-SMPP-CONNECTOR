@@ -24,7 +24,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.amk.smpp.rules.PDUOperationsValidator;
-import com.sun.istack.internal.NotNull;
 
 
 /**
@@ -37,15 +36,17 @@ public class SmppUtil {
     /**
      * Logger for class.
      */
-    Logger LOGGER = LogManager.getLogger(PDUOperationsValidator.class.getName());
+    private             Logger LOGGER                         = LogManager.getLogger(PDUOperationsValidator.class.getName());
     /**
      * Scheduled Delivery Time Format.
      */
-    private static final String SCHEDULED_DELIVERY_TIME_FROMAT = "YYMMDDhhmmssSSSS";
+    public static final String SCHEDULED_DELIVERY_TIME_FROMAT = "YYMMDDhhmmssS";
+//    tnnp
     /**
      * Invoke method error msg.
      */
-    private static final String ERROR_INVOKE                   = "ERROR";
+    public static final String ERROR_INVOKE                   = "ERROR";
+    public static final String NONE_VALUE                     = "NONE";
 
 
     /**
@@ -61,7 +62,7 @@ public class SmppUtil {
      * @param scheduledDeliveryTime Date of delivery of the SMS.
      * @return Date of delivery of the message with format.
      */
-    public static String transformDate(@NotNull final Date scheduledDeliveryTime) {
+    public static String transformDate(final Date scheduledDeliveryTime) {
         final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(SCHEDULED_DELIVERY_TIME_FROMAT);
         final Date today = new Date();
         if (scheduledDeliveryTime.before(today)) {
@@ -91,7 +92,7 @@ public class SmppUtil {
                     // se obtiene el nombre de la propiedad y el valor de la propiedad haciendo la invocación del método
                     // los resultados se almacenan en un mapa <nombre de la propiedad, valor>
                     .forEach(propertyDescriptor -> map.put(propertyDescriptor.getName(),
-                                                           invoke(propertyDescriptor, bean)));
+                            invoke(propertyDescriptor, bean)));
             return map;
         } catch (final IntrospectionException e) {
             // si algo falla se retorna un mapa vacio
@@ -111,7 +112,7 @@ public class SmppUtil {
     private static Object invoke(final PropertyDescriptor pd, final Object bean) {
         try {
             return (Objects.isNull(pd.getReadMethod().invoke(bean))
-                    || pd.getReadMethod().invoke(bean).toString().isEmpty()) ? "none" : pd.getReadMethod().invoke(bean);
+                    || pd.getReadMethod().invoke(bean).toString().isEmpty()) ? NONE_VALUE : pd.getReadMethod().invoke(bean);
         } catch (InvocationTargetException | IllegalAccessException e) {
             return ERROR_INVOKE;
         }

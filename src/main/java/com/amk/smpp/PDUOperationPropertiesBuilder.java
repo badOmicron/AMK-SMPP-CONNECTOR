@@ -45,16 +45,16 @@ public class PDUOperationPropertiesBuilder {
     /**
      * The short message is to be scheduled by the MC for delivery. Set to NULL for immediate message delivery.
      */
-    private Date   scheduleDeliveryTime = new Date();
+    private Date      scheduleDeliveryTime;
     /**
      * The validity period of this message. Set to NULL to request the MC default validity period. Must be a number.
      */
-    private String validityPeriod       = Data.DFLT_VALIDITY;
+    private String validityPeriod      = Data.DFLT_VALIDITY;
     /**
      * Number of destination addresses – indicates the number of destinations that are to follow.
      * A maximum of 255 destinationaddresses are allowed.
      */
-    private int    numberOfDestination  = 1;
+    private int    numberOfDestination = 1;
 
     /**
      * Indicates Message Mode and Message Type.

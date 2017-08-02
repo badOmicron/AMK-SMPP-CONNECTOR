@@ -7,6 +7,7 @@
 
 package com.amk.smpp.rules;
 
+import java.util.Map;
 import java.util.Objects;
 
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
@@ -30,9 +31,32 @@ public interface PDUOperationsValidator extends Ruleable {
     Logger LOGGER = LogManager.getLogger(PDUOperationsValidator.class.getName());
 
     /**
+     * TODO
+     * @param pduOperation .
+     */
+    static void validNotNull(final PDUOperation pduOperation) {
+        if (Objects.isNull(pduOperation)) {
+            throw new IllegalArgumentException("[X] error, pduOperation can be null");
+        }
+    }
+
+    /**
      *
+     * @param pduOperation
+     */
+    static void validNotEmpty(final PDUOperation pduOperation) {
+        final Map< String, Object > mapAux = SmppUtil.beanProperties(pduOperation);
+        if (mapAux.values().parallelStream().anyMatch(SmppUtil.NONE_VALUE::equals)) {
+            throw new IllegalArgumentException("[X] error, pduOperation properties cannot be null or empty -> " + mapAux.toString());
+        }
+    }
+
+    /**
+     *
+     * @param pduOperation
      * @return
      */
+
     static boolean validSubmit(final PDUOperation pduOperation) {
         boolean valid = Objects.nonNull(pduOperation);
         valid = valid && Objects.nonNull(pduOperation.getOperationProps());

@@ -7,6 +7,7 @@
 
 package com.amk.smpp;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -18,6 +19,8 @@ import org.smpp.ServerPDUEvent;
 import org.smpp.Session;
 import org.smpp.SmppException;
 import org.smpp.pdu.BindReceiver;
+import org.smpp.pdu.BindRequest;
+import org.smpp.pdu.BindResponse;
 import org.smpp.pdu.BindTransciever;
 import org.smpp.pdu.BindTransmitter;
 import org.smpp.pdu.CancelSM;
@@ -41,6 +44,7 @@ import org.smpp.pdu.WrongDateFormatException;
 import org.smpp.pdu.WrongLengthOfStringException;
 import org.smpp.util.ByteBuffer;
 
+import com.amk.smpp.rules.PDUOperationsValidator;
 import com.amk.smpp.util.SmppUtil;
 
 /**
@@ -74,6 +78,8 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      */
     private Session    session;
 
+    private boolean bound = false;
+
     /**
      * Creates an instance of AMKSmppFacade.
      *
@@ -92,7 +98,9 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * init the session.
      */
     private void init() {
+        LOGGER.debug("init: ");
         if (Objects.isNull(session)) {
+            LOGGER.debug("init: Session");
             this.session = new Session(this.connection);
         }
     }
@@ -106,9 +114,12 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     @Override
     public Response executeOperation(final PDUOperation pduOperation) throws SmppException {
         init();
-        org.smpp.test.SMPPTest t;
+        PDUOperationsValidator.validNotNull(pduOperation);
+        PDUOperationsValidator.validNotEmpty(pduOperation);
+        bind(pduOperation);
         switch (pduOperation.getOperationType()) {
             case SUBMIT_SMS:
+                LOGGER.debug("executeOperation: SUBMIT_SMS");
                 return submit(pduOperation);
             case SUBMIT_SMS_MULTI:
                 return submitMulti(pduOperation);
@@ -136,7 +147,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * @return Correct request object.
      * @throws SmppException if the {@link PDUOperation} is null.
      */
-    private Request defineBindType(final PDUOperation pduOperation) throws SmppException {
+    private BindRequest defineBindType(final PDUOperation pduOperation) throws SmppException {
         if (Objects.isNull(pduOperation.getBindType())) {
             throw new SmppException(INVALID_BIND_MODE);
         }
@@ -165,6 +176,34 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     //        PDUOperationsValidator.validSubmit(pduOperation);
     //    }
 
+    private void bind(final PDUOperation pduOperation) throws SmppException {
+        LOGGER.debug("bind: ");
+        if (bound) {
+            System.out.println("Already bound, unbind first.");
+            return;
+        }
+        BindResponse response = null;
+        BindRequest bindRequest = defineBindType(pduOperation);
+        bindRequest.setSystemId("hugo");
+        bindRequest.setPassword("ggoohu");
+        bindRequest.setSystemType(Data.DFLT_SYSTYPE);
+        bindRequest.setInterfaceVersion((byte) 0x34);
+        bindRequest.setAddressRange("2");
+        // send the request
+        try {
+            response = session.bind(bindRequest);
+        } catch (final IOException e) {
+            e.printStackTrace();
+        }
+        assert response != null;
+        System.out.println("Bind response " + response.debugString());
+        if (response.getCommandStatus() == Data.ESME_ROK) {
+            bound = true;
+        }
+
+    }
+
+
     /**
      * Creates a new instance of <code>SubmitSM</code> class, lets you set
      * subset of fields of it. This PDU is used to send SMS message
@@ -179,6 +218,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * @return response of the SMCS.
      * */
     private < E extends Response > E submit(final PDUOperation pduOperation) throws SmppException {
+        LOGGER.debug("executeOperation: submit");
         SubmitSMResp response = new SubmitSMResp();
         final SubmitSM request;
         try {
@@ -192,7 +232,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             } else {
                 response = session.submit(request);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new SmppException(e);
         }
         return (E) response;
@@ -433,18 +473,18 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * @throws WrongDateFormatException If any value does not comply with the format.
      */
     private < E extends Request > E setRequestProps(final PDUOperationTypes pPDUOperationType, final
-
-
     PDUOperationProperties props) throws WrongLengthOfStringException, WrongDateFormatException {
+        LOGGER.debug("setRequestProps: ");
         switch (pPDUOperationType) {
             case SUBMIT_SMS:
+                LOGGER.debug(" setRequestProps: SUBMIT_SMS ");
                 final SubmitSM request = new SubmitSM();
                 // set values
                 request.setServiceType(props.getServiceType());
                 request.setSourceAddr(props.getSourceAddress());
                 Arrays.asList(props.getDestAddress()).forEach(request::setDestAddr);
                 request.setReplaceIfPresentFlag(props.getReplaceIfPresentFlag());
-                request.setScheduleDeliveryTime(SmppUtil.transformDate(props.getScheduleDeliveryTime()));
+//                request.setScheduleDeliveryTime(SmppUtil.transformDate(props.getScheduleDeliveryTime()));
                 request.setValidityPeriod(props.getValidityPeriod());
                 request.setEsmClass(props.getEsmClass());
                 request.setProtocolId(props.getProtocolId());
@@ -500,5 +540,6 @@ public class AMKSmppFacade implements SmppWrapperFacade {
         }
         return null;
     }
+
 
 }
