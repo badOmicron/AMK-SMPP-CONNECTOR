@@ -20,17 +20,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import javax.annotation.CheckForNull;
+import javax.validation.constraints.NotNull;
+
 import org.smpp.SmppException;
 import org.smpp.pdu.BindReceiver;
 import org.smpp.pdu.BindRequest;
 import org.smpp.pdu.BindTransciever;
 import org.smpp.pdu.BindTransmitter;
 
-import com.amk.smpp.BindingType;
-import com.amk.smpp.PDUOperation;
-import com.amk.smpp.rules.PDUOperationsValidator;
+import com.amk.smpp.core.BindingType;
+import com.amk.smpp.operation.PDUOperation;
 
 
 /**
@@ -40,52 +40,33 @@ import com.amk.smpp.rules.PDUOperationsValidator;
  * @since 1.0.0
  */
 public class SMPPUtil {
+
     /**
-     * Logger for class.
-     */
-    private              Logger LOGGER                         = LogManager.getLogger(PDUOperationsValidator.class.getName());
-    /**
-     * Scheduled Delivery Time Format. TODO este patron para el formato de la fecha es 'especial' no esta construido.
+     * Scheduled Delivery Time Format.
      */
     public static final  String SCHEDULED_DELIVERY_TIME_FROMAT = "YYMMDDhhmmssS";
     /**
      * Invoke method error msg.
      */
     public static final  String ERROR_INVOKE                   = "ERROR";
-    public static final  String NONE_VALUE                     = "NONE";
     /**
-     * Error msg.
+     * Default value for nulls.
      */
-    private static final String INVALID_OPERATION_NULL         = "[X] Invalid Operation Type, may is null. Operation canceled.";
+    public static final  String NULL_VALUE                     = "NULL";
     /**
      * Error msg.
      */
     private static final String INVALID_BIND_MODE              = "[X] Invalid Binding Type, may is null. Operation canceled.";
-    /**
-     * Error msg.
-     */
-    private static final String INVALID_OPERATION_TYPE         = "[X] Invalid Operation Type, Operation canceled.";
 
-
-    /**
-     * Creates an instance of SMPPUtil.
-     * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
-     */
-    private SMPPUtil() {
-        super();
-    }
 
     /**
      *  Applies a date format 'YYMMDDhhmmssSSSS' and transforms them to letter.
      * @param scheduledDeliveryTime Date of delivery of the SMS.
      * @return Date of delivery of the message with format.
      */
-    public static String transformDate(final Date scheduledDeliveryTime) {
+    @CheckForNull
+    public static String transformDate(@NotNull final Date scheduledDeliveryTime) {
         final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(SCHEDULED_DELIVERY_TIME_FROMAT);
-        final Date today = new Date();
-        if (scheduledDeliveryTime.before(today)) {
-            return simpleDateFormat.format(today);
-        }
         return simpleDateFormat.format(scheduledDeliveryTime);
     }
 
@@ -114,7 +95,6 @@ public class SMPPUtil {
             return map;
         } catch (final IntrospectionException e) {
             // si algo falla se retorna un mapa vacio
-
             return Collections.emptyMap();
         }
     }
@@ -122,7 +102,7 @@ public class SMPPUtil {
     /**
      * Support method for {@link #beanProperties(Object)} <br/>
      * Helps to invoke the getter of the parsed bean.<br/>
-     * If something bad in the invoked method the returned value will be {@link #NONE_VALUE}
+     * If something bad in the invoked method the returned value will be {@link #NULL_VALUE}
      * @param pd PropertyDescriptor to be invoked.
      * @param bean bean that contains the invoked getter.
      * @return Value obtained from method invoked.
@@ -130,8 +110,8 @@ public class SMPPUtil {
     private static Object invoke(final PropertyDescriptor pd, final Object bean) {
         try {
             return (Objects.isNull(pd.getReadMethod().invoke(bean))
-                    || pd.getReadMethod().invoke(bean).toString().isEmpty()) ? NONE_VALUE : pd.getReadMethod().invoke(bean);
-        } catch (InvocationTargetException | IllegalAccessException e) {
+                    || pd.getReadMethod().invoke(bean).toString().isEmpty()) ? NULL_VALUE : pd.getReadMethod().invoke(bean);
+        } catch (final InvocationTargetException | IllegalAccessException e) {
             return ERROR_INVOKE;
         }
     }
@@ -154,8 +134,8 @@ public class SMPPUtil {
             case TRX:
                 return new BindTransciever();
             default:
-                System.out.println("DEFAULT");
                 throw new SmppException(INVALID_BIND_MODE);
         }
     }
+
 }

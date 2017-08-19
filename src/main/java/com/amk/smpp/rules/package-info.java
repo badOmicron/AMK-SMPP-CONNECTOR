@@ -4,9 +4,9 @@
  *      Date: Jul 20, 2017
  * Copyright: AMK Technologies, S.A. de C.V. 2017
  */
-
-/** TODO Descripción de las responsabilidades de la clase, patrones utilizados, algoritmos utilizados.
- *
+/**
+ * This package must contain all the classes used to define some rules to validate the
+ * {@link com.amk.smpp.operation.PDUOperation}.
  * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
  * @version 1.0.0
  * @since 1.0.0

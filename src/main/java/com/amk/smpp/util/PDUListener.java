@@ -5,18 +5,16 @@
  * Copyright: AMK Technologies, S.A. de C.V. 2017
  */
 
-package com.amk.smpp;
+package com.amk.smpp.util;
 
-import java.util.Objects;
+import static org.apache.logging.log4j.LogManager.getLogger;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.smpp.ServerPDUEvent;
 import org.smpp.ServerPDUEventListener;
-import org.smpp.Session;
 import org.smpp.SmppObject;
 
-import com.amk.smpp.rules.PDUOperationsValidator;
+import com.amk.smpp.core.AMKSmppFacade;
 
 /**
  * Implements simple PDU listener which handles PDUs received from SMSC.
@@ -32,32 +30,46 @@ public abstract class PDUListener extends SmppObject implements ServerPDUEventLi
     /**
      * Logger for class.
      */
-    Logger LOGGER = LogManager.getLogger(PDUOperationsValidator.class.getName());
+    static final Logger LOGGER = getLogger(AMKSmppFacade.class.getName());
+
     /**
      * Error msg.
      */
     private static final String INVALID_CONNECTION = "[X] error, Connection or Session invalid, may be null";
-    /**
-     * Session for sMPP communication.
-     */
-    private Session session;
 
     /**
-     * Creates an instance of PDUListener.
-     *
-     * @param session  provides all methods necessary for communication with SMSC using SMPP protocol.
-     * */
-    protected PDUListener(final Session session) {
-        if (Objects.isNull(session) || Objects.isNull(session.getConnection())) {
-            LOGGER.error(INVALID_CONNECTION);
-            throw new IllegalStateException(INVALID_CONNECTION);
-        }
-        this.session = session;
+     * Waiting time used by the observer before turning to see if there are any events.
+     */
+    private long intervalTime = 0;
+
+
+    /**
+     * Returns received request pdu.
+     * Optional. It depends on the control given to the event, e.g. Store events in a queue.
+     * @return some {@link ServerPDUEvent}.
+     */
+    public abstract ServerPDUEvent getRequestEvent();
+
+    /**
+     * Returns received response pdu.
+     * Optional. It depends on the control given to the event, e.g. Store events in a queue.
+     * @return some {@link ServerPDUEvent}.
+     */
+    public abstract ServerPDUEvent getResponseEvent();
+
+    /**
+     * Getter for intervalTime.
+     * @return intervalTime.
+     **/
+    public long getIntervalTime() {
+        return intervalTime;
     }
 
     /**
-     * Returns received pdu.
-     * Optional. It depends on the control given to the event, e.g. Store events in a queue.
-     */
-    public abstract ServerPDUEvent getRequestEvent();
+     * Setter for intervalTime.
+     * @param intervalTime expected.
+     **/
+    public void setIntervalTime(final long intervalTime) {
+        this.intervalTime = intervalTime;
+    }
 }

@@ -5,9 +5,11 @@
  * Copyright: AMK Technologies, S.A. de C.V. 2017
  */
 
-package com.amk.smpp;
+package com.amk.smpp.operation;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Objects;
 
 import org.smpp.Data;
 import org.smpp.pdu.Address;
@@ -109,8 +111,6 @@ public class PDUOperationPropertiesBuilder {
      * If not using an SMSC canned message, set to NULL.
      */
     private byte smDefaultMsgId       = Data.DFLT_DFLTMSGID;
-
-    private long receiveTimeout = Data.RECEIVE_BLOCKING;
 
     /**
      * Getter for systemType.
@@ -225,17 +225,11 @@ public class PDUOperationPropertiesBuilder {
         return smDefaultMsgId;
     }
 
-    /**
-     * Getter for receiveTimeout.
-     * @return receiveTimeout.
-     **/
-    public long getReceiveTimeout() {
-        return receiveTimeout;
-    }
 
     /**
      * Setter for systemType.
      * @param systemType expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setSystemType(final String systemType) {
         this.systemType = systemType;
@@ -245,6 +239,7 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for serviceType.
      * @param serviceType expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setServiceType(final String serviceType) {
         this.serviceType = serviceType;
@@ -254,6 +249,7 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for sourceAddress.
      * @param sourceAddress expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setSourceAddress(final Address sourceAddress) {
         this.sourceAddress = sourceAddress;
@@ -263,24 +259,27 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for destAddress.
      * @param destAddress expected.
-     **/
+     * @return {@link PDUOperationPropertiesBuilder}
+     */
     public PDUOperationPropertiesBuilder setDestAddress(final Address[] destAddress) {
-        this.destAddress = destAddress;
+        this.destAddress = (Objects.isNull(destAddress)) ? null : Arrays.copyOf(destAddress, destAddress.length);
         return this;
     }
 
     /**
      * Setter for scheduleDeliveryTime.
      * @param scheduleDeliveryTime expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setScheduleDeliveryTime(final Date scheduleDeliveryTime) {
-        this.scheduleDeliveryTime = scheduleDeliveryTime;
+        this.scheduleDeliveryTime = (Objects.isNull(scheduleDeliveryTime)) ? null : new Date(scheduleDeliveryTime.getTime());
         return this;
     }
 
     /**
      * Setter for validityPeriod.
      * @param validityPeriod expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setValidityPeriod(final String validityPeriod) {
         this.validityPeriod = validityPeriod;
@@ -290,6 +289,7 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for numberOfDestination.
      * @param numberOfDestination expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setNumberOfDestination(final int numberOfDestination) {
         this.numberOfDestination = numberOfDestination;
@@ -299,6 +299,7 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for esmClass.
      * @param esmClass expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setEsmClass(final byte esmClass) {
         this.esmClass = esmClass;
@@ -308,6 +309,7 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for protocolId.
      * @param protocolId expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setProtocolId(final byte protocolId) {
         this.protocolId = protocolId;
@@ -317,6 +319,7 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for priorityFlag.
      * @param priorityFlag expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setPriorityFlag(final byte priorityFlag) {
         this.priorityFlag = priorityFlag;
@@ -326,6 +329,7 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for registeredDelivery.
      * @param registeredDelivery expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setRegisteredDelivery(final byte registeredDelivery) {
         this.registeredDelivery = registeredDelivery;
@@ -335,6 +339,7 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for replaceIfPresentFlag.
      * @param replaceIfPresentFlag expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setReplaceIfPresentFlag(final byte replaceIfPresentFlag) {
         this.replaceIfPresentFlag = replaceIfPresentFlag;
@@ -344,6 +349,7 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for dataCoding.
      * @param dataCoding expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setDataCoding(final byte dataCoding) {
         this.dataCoding = dataCoding;
@@ -353,22 +359,12 @@ public class PDUOperationPropertiesBuilder {
     /**
      * Setter for smDefaultMsgId.
      * @param smDefaultMsgId expected.
+     * @return {@link PDUOperationPropertiesBuilder}
      **/
     public PDUOperationPropertiesBuilder setSmDefaultMsgId(final byte smDefaultMsgId) {
         this.smDefaultMsgId = smDefaultMsgId;
         return this;
     }
-
-
-    /**
-     *  * Setter for receiveTimeout.
-     * @param receiveTimeout expected.
-     **/
-    public PDUOperationPropertiesBuilder setReceiveTimeout(final long receiveTimeout) {
-        this.receiveTimeout = receiveTimeout;
-        return this;
-    }
-
 
     /**
      * Create a {@link PDUOperationProperties} intance.

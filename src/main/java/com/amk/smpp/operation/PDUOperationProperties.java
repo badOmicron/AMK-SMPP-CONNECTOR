@@ -5,9 +5,11 @@
  * Copyright: AMK Technologies, S.A. de C.V. 2017
  */
 
-package com.amk.smpp;
+package com.amk.smpp.operation;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Objects;
 
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -113,14 +115,12 @@ public class PDUOperationProperties {
     private byte   smDefaultMsgId       = Data.DFLT_DFLTMSGID;
 
 
-    private long receiveTimeout = Data.RECEIVE_BLOCKING;
-
     /**
      * Creates an instance of PDUOperationProperties.
      * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
      */
-    private PDUOperationProperties() {
-        super();
+    protected PDUOperationProperties() {
+        //
     }
 
     /**
@@ -129,20 +129,20 @@ public class PDUOperationProperties {
      * @param propsBuilder The Property Builder.
      */
     PDUOperationProperties(final PDUOperationPropertiesBuilder propsBuilder) {
-        this.systemType = propsBuilder.getSystemType();
-        this.serviceType = propsBuilder.getServiceType();
-        this.sourceAddress = propsBuilder.getSourceAddress();
-        this.destAddress = propsBuilder.getDestAddress();
-        this.scheduleDeliveryTime = propsBuilder.getScheduleDeliveryTime();
-        this.validityPeriod = propsBuilder.getValidityPeriod();
-        this.numberOfDestination = propsBuilder.getNumberOfDestination();
-        this.esmClass = propsBuilder.getEsmClass();
-        this.protocolId = propsBuilder.getProtocolId();
-        this.priorityFlag = propsBuilder.getPriorityFlag();
-        this.registeredDelivery = propsBuilder.getRegisteredDelivery();
-        this.replaceIfPresentFlag = propsBuilder.getReplaceIfPresentFlag();
-        this.dataCoding = propsBuilder.getDataCoding();
-        this.smDefaultMsgId = propsBuilder.getSmDefaultMsgId();
+        this.setSystemType(propsBuilder.getSystemType());
+        this.setServiceType(propsBuilder.getServiceType());
+        this.setSourceAddress(propsBuilder.getSourceAddress());
+        this.setDestAddress(propsBuilder.getDestAddress());
+        this.setScheduleDeliveryTime(propsBuilder.getScheduleDeliveryTime());
+        this.setValidityPeriod(propsBuilder.getValidityPeriod());
+        this.setNumberOfDestination(propsBuilder.getNumberOfDestination());
+        this.setEsmClass(propsBuilder.getEsmClass());
+        this.setProtocolId(propsBuilder.getProtocolId());
+        this.setPriorityFlag(propsBuilder.getPriorityFlag());
+        this.setRegisteredDelivery(propsBuilder.getRegisteredDelivery());
+        this.setReplaceIfPresentFlag(propsBuilder.getReplaceIfPresentFlag());
+        this.setDataCoding(propsBuilder.getDataCoding());
+        this.setSmDefaultMsgId(propsBuilder.getSmDefaultMsgId());
     }
 
     /**
@@ -198,7 +198,7 @@ public class PDUOperationProperties {
      * @return destAddress.
      **/
     public Address[] getDestAddress() {
-        return destAddress;
+        return (Objects.isNull(destAddress)) ? null : Arrays.copyOf(this.destAddress, this.destAddress.length);
     }
 
     /**
@@ -206,7 +206,7 @@ public class PDUOperationProperties {
      * @param destAddress expected.
      **/
     public void setDestAddress(final Address[] destAddress) {
-        this.destAddress = destAddress;
+        this.destAddress = (Objects.isNull(destAddress)) ? null : Arrays.copyOf(destAddress, destAddress.length);
     }
 
     /**
@@ -214,7 +214,7 @@ public class PDUOperationProperties {
      * @return scheduleDeliveryTime.
      **/
     public Date getScheduleDeliveryTime() {
-        return scheduleDeliveryTime;
+        return (Objects.isNull(scheduleDeliveryTime)) ? null : new Date(scheduleDeliveryTime.getTime());
     }
 
     /**
@@ -222,7 +222,7 @@ public class PDUOperationProperties {
      * @param scheduleDeliveryTime expected.
      **/
     public void setScheduleDeliveryTime(final Date scheduleDeliveryTime) {
-        this.scheduleDeliveryTime = scheduleDeliveryTime;
+        this.scheduleDeliveryTime = (Objects.isNull(scheduleDeliveryTime)) ? null : new Date(scheduleDeliveryTime.getTime());
     }
 
     /**
@@ -369,27 +369,10 @@ public class PDUOperationProperties {
         this.smDefaultMsgId = smDefaultMsgId;
     }
 
-    /**
-     * Getter for receiveTimeout.
-     * @return receiveTimeout.
-     **/
-    public long getReceiveTimeout() {
-        return receiveTimeout;
-    }
-
-    /**
-     *  * Setter for receiveTimeout.
-     * @param receiveTimeout expected.
-     **/
-    public void setReceiveTimeout(final long receiveTimeout) {
-        this.receiveTimeout = receiveTimeout;
-    }
-
-
     /* La documentación de este método se encuentra en la clase o interface que
-    * lo declara (non-Javadoc)
-    * @see java.lang.Object#toString()
-    */
+     * lo declara (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
     @Override
     public String toString() {
         final ReflectionToStringBuilder builder = new ReflectionToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE);

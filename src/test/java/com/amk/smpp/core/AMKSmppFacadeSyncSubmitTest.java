@@ -1,7 +1,6 @@
-package com.amk.smpp;
+package com.amk.smpp.core;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,15 +16,17 @@ import org.smpp.TCPIPConnection;
 import org.smpp.pdu.Address;
 import org.smpp.pdu.CancelSMResp;
 import org.smpp.pdu.DataSMResp;
+import org.smpp.pdu.QuerySMResp;
+import org.smpp.pdu.ReplaceSMResp;
+import org.smpp.pdu.SubmitMultiSMResp;
 import org.smpp.pdu.SubmitSMResp;
-import org.smpp.smscsim.DeliveryInfoSender;
-import org.smpp.smscsim.PDUProcessorGroup;
-import org.smpp.smscsim.SMSCListenerImpl;
-import org.smpp.smscsim.SMSCSession;
-import org.smpp.smscsim.ShortMessageStore;
-import org.smpp.smscsim.SimulatorPDUProcessor;
-import org.smpp.smscsim.SimulatorPDUProcessorFactory;
-import org.smpp.smscsim.util.Table;
+
+import com.amk.smpp.operation.PDUOperation;
+import com.amk.smpp.operation.PDUOperationProperties;
+import com.amk.smpp.operation.PDUOperationPropertiesBuilder;
+import com.amk.smpp.operation.PDUOperationTypes;
+import com.amk.smpp.sim.SIMSimulator;
+import com.amk.smpp.util.Message;
 
 /**
  * Test
@@ -36,45 +37,17 @@ import org.smpp.smscsim.util.Table;
 @PowerMockIgnore("javax.management.*")
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({})
-public class AMKSmppFacadeTest {
+public class AMKSmppFacadeSyncSubmitTest {
     /**
      * Logger for class.
      */
-    private static final Logger LOGGER = LogManager.getLogger(AMKSmppFacade.class.getName());
+    private static final Logger LOGGER = LogManager.getLogger(AMKSmppFacadeSyncSubmitTest.class);
 
-    /**
-     * Listener que ayuda a simular SMS.
-     */
-    private SMSCListenerImpl             smscListener;
-    /**
-     * Contenedor de procesos.
-     */
-    private PDUProcessorGroup            processors;
-    /**
-     * Contenedor de SMS's que ha enviado el cliente.
-     */
-    private ShortMessageStore            messageStore;
-    /**
-     * Información del envío.
-     */
-    private DeliveryInfoSender           deliveryInfoSender;
-    /**
-     * Representa una tabla con los registros de los usuarios.
-     */
-    private Table                        users;
-    /**
-     * Fábrica de SimulatorPDUProcessor.
-     */
-    private SimulatorPDUProcessorFactory factory;
-
-    private String usersFileName = "users.txt";
-
+    private SIMSimulator   simSimulator;
     /**
      * SMPP Connection
      */
-    private Connection connection;
-    private String host = "0.0.0.0";
-    private int    port = 2300;
+    private Connection     connection;
     private AMKSmppFacade  smppFacade;
     private BindingManager bindingManager;
 
@@ -85,7 +58,6 @@ public class AMKSmppFacadeTest {
     @Before
     public void setUp() throws Exception {
         setUpThread();
-        setUpSimulator();
         setUpConnection();
     }
 
@@ -93,7 +65,7 @@ public class AMKSmppFacadeTest {
      * Configuración del Thread.
      */
     private void setUpThread() {
-        Thread.currentThread().setName("AMKSmppFacadeTest");
+        Thread.currentThread().setName("AMKSmppFacadeSyncSubmitTest");
     }
 
     /**
@@ -101,35 +73,20 @@ public class AMKSmppFacadeTest {
      * @throws Exception .
      */
     private void setUpSimulator() throws Exception {
-        LOGGER.debug("setUp: SMCS Simluator");
-        // Puerto para el Simulador de SMCS.
-        int port = 2300;
-        smscListener = new SMSCListenerImpl(port, true);
-        processors = new PDUProcessorGroup();
-        messageStore = new ShortMessageStore();
-        deliveryInfoSender = new DeliveryInfoSender();
-        LOGGER.debug("setUp: init deliveryInfoSender");
-        deliveryInfoSender.start();
-        LOGGER.debug("setUp: users");
-        InputStream input = this.getClass().getClassLoader().getResourceAsStream(usersFileName);
-        users = new Table();
-        users.getParser().parse(input);
-        LOGGER.debug("setUp: factory Simulator");
-        factory = new SimulatorPDUProcessorFactory(processors, messageStore, deliveryInfoSender, users);
-        factory.setDisplayInfo(true);
-        smscListener.setPDUProcessorFactory(factory);
-        LOGGER.debug("setUp: smscListener");
-        smscListener.start();
-        LOGGER.debug("Simulator Started..");
-    }
+        if (Objects.isNull(simSimulator)) {
+            simSimulator = new SIMSimulator();
+            simSimulator.stop();
+            simSimulator.init(2300);
+        }
 
+    }
 
     /**
      * Configura la Conexión con el SMCS.
      * @throws Exception .
      */
     private void setUpConnection() throws Exception {
-        connection = new TCPIPConnection(host, port);
+        connection = new TCPIPConnection("0.0.0.0", 2300);
         smppFacade = new AMKSmppFacade(connection);
         bindingManager = new BindingManager("hugo", "ggoohu", connection);
         smppFacade.setBindingManager(bindingManager);
@@ -149,16 +106,16 @@ public class AMKSmppFacadeTest {
 
     @Test
     public void executeOperation() throws Exception {
+        setUpSimulator();
         submit();
         data();
-        stop();
+        multi();
     }
 
     private void submit() throws Exception {
         LOGGER.debug("executeOperation: " + PDUOperationTypes.SUBMIT_SMS);
         Assert.assertNotNull(connection);
         Assert.assertNotNull(smppFacade);
-        // Enviar mensaje sincrono --> Se espera la respuesta.
         PDUOperationProperties props = new PDUOperationPropertiesBuilder()
                 .setSourceAddress(new Address("5529094190"))
                 .setDestAddress(new Address[]{new Address("5529094190")})
@@ -175,12 +132,11 @@ public class AMKSmppFacadeTest {
                 .build();
         SubmitSMResp response = smppFacade.executeOperation(submit);
         String messageId = response.getMessageId();
-        messageStore.print();
+        simSimulator.messageStore.print();
         submit.getSmsMessage().setId(messageId);
-        System.out.println(messageId);
-        System.out.println(response.getCommandStatus());
-        Assert.assertNotNull(messageStore.getMessage(messageId));
-//        cancel(submit);
+        Assert.assertNotNull(simSimulator.messageStore.getMessage(messageId));
+        query(messageId);
+        replace(messageId);
     }
 
     private void data() throws Exception {
@@ -203,52 +159,83 @@ public class AMKSmppFacadeTest {
                 .build();
         DataSMResp response = smppFacade.executeOperation(data);
         String messageId = response.getMessageId();
-        System.out.println("Message Data Id " + messageId);
-        System.out.println(response.getCommandStatus());
-        messageStore.print();
+        Assert.assertNotNull(messageId);
+        simSimulator.messageStore.print();
     }
+
 
     private void cancel(PDUOperation pduOperation) throws Exception {
         LOGGER.debug("cancel: TEST");
         pduOperation.setOperationType(PDUOperationTypes.CANCEL);
         CancelSMResp response = smppFacade.executeOperation(pduOperation);
         response.debugString();
-        messageStore.print();
+        simSimulator.messageStore.print();
+        Assert.assertNull(simSimulator.messageStore.getMessage(pduOperation.getSmsMessage().getId()));
     }
 
-    //    @After
-    public void tearDown() throws Exception {
-        stop();
+    private void multi() throws Exception {
+        Assert.assertNotNull(connection);
+        Assert.assertNotNull(smppFacade);
+        // Enviar mensaje sincrono --> Se espera la respuesta.
+        PDUOperationProperties props = new PDUOperationPropertiesBuilder()
+                .setSourceAddress(new Address("5529094190"))
+                .setDestAddress(new Address[]{new Address("5529094190"), new Address("6778730688")})
+                .build();
+        Message smsMessage = new Message();
+        smsMessage.setBody("Mi mensaje de prueba MULTI");
+        PDUOperation multiSubmit = PDUOperation
+                .newBuilder()
+                .withOperationProps(props)
+                .withOperationType(PDUOperationTypes.SUBMIT_SMS_MULTI)
+                .withAsynchronous(false)
+                .withSmsMessage(smsMessage)
+                .withBindingType(BindingType.TRX)
+                .build();
+        SubmitMultiSMResp response = smppFacade.executeOperation(multiSubmit);
+        String messageId = response.getMessageId();
+        Assert.assertNotNull(messageId);
     }
 
-    private void stop() throws IOException {
-        LOGGER.debug("stop Simulator ");
-        if (smscListener != null) {
-            System.out.println("Stopping listener...");
-//            synchronized (processors) {
-            int procCount = processors.count();
-            System.out.println("...process " + procCount);
-            SimulatorPDUProcessor proc;
-            SMSCSession session;
-            for (int i = 0; i < procCount; i++) {
-                proc = (SimulatorPDUProcessor) processors.get(i);
-                session = proc.getSession();
-                LOGGER.debug("Stopping session " + i + ": " + proc.getSystemId() + " ...");
-                session.stop();
-                LOGGER.debug(" stopped.");
-            }
-//            }
-            LOGGER.debug("... stoping smscListener ");
-            smscListener.stop();
-            LOGGER.debug("...  smscListener stoped");
-            smscListener = null;
-            LOGGER.debug("... stoping deliveryInfoSender ");
-            if (deliveryInfoSender != null) {
-                deliveryInfoSender.stop();
-                LOGGER.debug("...  deliveryInfoSender stoped");
-            }
-            LOGGER.debug("SMCS Simulator Stopped.");
-        }
+    private void query(String messageId) throws Exception {
+        PDUOperationProperties props = new PDUOperationPropertiesBuilder()
+                .setSourceAddress(new Address("5529094190"))
+                .setDestAddress(new Address[]{new Address("5529094190")})
+                .build();
+        Message smsMessage = new Message();
+        smsMessage.setId(messageId);
+        smsMessage.setBody("Mi mensaje de prueba QUERY");
+        PDUOperation data = PDUOperation
+                .newBuilder()
+                .withOperationProps(props)
+                .withOperationType(PDUOperationTypes.QUERY)
+                .withAsynchronous(false)
+                .withSmsMessage(smsMessage)
+                .withBindingType(BindingType.TRX)
+                .build();
+        QuerySMResp queryResponse = smppFacade.executeOperation(data);
+        queryResponse.debugString();
+        Assert.assertNotNull(queryResponse.getBody());
     }
 
+    private void replace(String messageId) throws Exception {
+        PDUOperationProperties props = new PDUOperationPropertiesBuilder()
+                .setSourceAddress(new Address("5529094190"))
+                .setDestAddress(new Address[]{new Address("5529094190")})
+                .build();
+        Message smsMessage = new Message();
+        smsMessage.setId(messageId);
+        smsMessage.setBody("Mi mensaje de prueba REPLACE");
+        PDUOperation replace = PDUOperation
+                .newBuilder()
+                .withOperationProps(props)
+                .withOperationType(PDUOperationTypes.REPLACE)
+                .withAsynchronous(false)
+                .withSmsMessage(smsMessage)
+                .withBindingType(BindingType.TRX)
+                .build();
+        ReplaceSMResp response = smppFacade.executeOperation(replace);
+        Assert.assertNotNull(response);
+        simSimulator.messageStore.print();
+        cancel(replace);
+    }
 }

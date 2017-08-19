@@ -1,7 +1,14 @@
-package com.amk.smpp;
+/*
+ *      File: Message.java
+ *    Author: Orlando Ramos <orlando.ramos@amk-technologies.com>
+ *      Date: Ago 18, 2017
+ * Copyright: AMK Technologies, S.A. de C.V. 2017
+ */
 
-/** TODO Descripción de las responsabilidades de la clase, patrones utilizados, algoritmos utilizados.
- *
+package com.amk.smpp.util;
+
+/**
+ * Bean that represents an SMS.
  * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
  * @version 1.0.0
  * @since 1.0.0
@@ -19,10 +26,7 @@ public class Message {
 
     /**
      * Creates an instance of Message.
-     * TODO alguna descripción
      * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
-     * @version 1.0.0
-     * @param
      */
     public Message() {
         super();
@@ -30,10 +34,10 @@ public class Message {
 
     /**
      * Creates an instance of Message.
-     * TODO alguna descripción
+     * Sets the id and body message.
      * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
-     * @version 1.0.0
-     * @param
+     * @param id message Id.
+     * @param body message body.
      */
     public Message(final String id, final String body) {
         this.id = id;

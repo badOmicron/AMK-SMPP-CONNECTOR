@@ -5,7 +5,7 @@
  * Copyright: AMK Technologies, S.A. de C.V. 2017
  */
 
-package com.amk.smpp;
+package com.amk.smpp.operation;
 
 /**
  * Available operations for the user to execute in the SMPP protocol.

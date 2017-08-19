@@ -5,7 +5,8 @@
  * Copyright: AMK Technologies, S.A. de C.V. 2017
  */
 
-package com.amk.smpp;
+package com.amk.smpp.core;
+
 
 /**
  * An ESME needs to be bounded to an SMCS to be able to initiate communication, so it is necessary to specify what type
@@ -25,7 +26,7 @@ public enum BindingType {
     /**
      * A connected ESME has requested to bind as a Transmitter.
      */
-    TX(1, " An ESME bound as a transmitter may send short messages to a Message Center"),
+    TX(1, "An ESME bound as a transmitter may send short messages to a Message Center"),
     /**
      * A connected ESME has requested to bind as a Receive.
      */
@@ -34,16 +35,16 @@ public enum BindingType {
      * A connected ESME has requested to bind as a Transceiver.
      */
     TRX(3,
-        "An ESME bound as a Transceiver is authorised to use all operations supported by a Transmitter ESME and a Receiver ESME.");
+            "An ESME bound as a Transceiver is authorised to use all operations supported by a Transmitter ESME and a Receiver ESME.");
 
     /**
      * Bind Type Id.
      */
-    private Integer typeId;
+    private int    typeId;
     /**
      * Bind description.
      */
-    private String  description;
+    private String description;
 
     /**  Creates an instance of AvailableOperations.
      *
@@ -57,12 +58,12 @@ public enum BindingType {
 
     /**
      * Return the SMPP Operation of the argument <code>operationId</code>.
-     * @param bindTypeId a <code>Integer</code> representing the SMPP Operation {@link PDUOperationTypes}
-     * @return {@link PDUOperationTypes}
+     * @param bindTypeId a <code>Integer</code> representing the SMPP Operation {@link com.amk.smpp.operation.PDUOperationTypes}
+     * @return {@link com.amk.smpp.operation.PDUOperationTypes}
      */
     public static BindingType valueOf(final Integer bindTypeId) {
         for (BindingType availableBindingTypes : values()) {
-            if (availableBindingTypes.getBindId().equals(bindTypeId)) {
+            if (availableBindingTypes.getBindId() == bindTypeId) {
                 return availableBindingTypes;
             }
         }
@@ -75,7 +76,7 @@ public enum BindingType {
      * Getter for bindTypeId.
      * @return operationId.
      **/
-    public Integer getBindId() {
+    public int getBindId() {
         return typeId;
     }
 

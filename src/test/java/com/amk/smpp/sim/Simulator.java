@@ -1,4 +1,4 @@
-package com.amk.smpp;
+package com.amk.smpp.sim;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;

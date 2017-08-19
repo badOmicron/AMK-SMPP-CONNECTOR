@@ -3,7 +3,7 @@
     <Appenders>
         <Console name = "ConsoleAppender" target = "SYSTEM_OUT">
             <PatternLayout
-		            pattern = "[%style{%t-%T}{yellow}][%highlight{%-5p}{DEBUG=magenta}][%style{%d{d-MM-yyyy:HH:mm:ss.SSS}}{green}] - %highlight{%l} -> %style{%m}{blink,blue}%throwable{full}%n" />
+		            pattern = "[%style{%t-%T}{dim,Red}][%highlight{%-5p}{FATAL=red blink, ERROR=red, WARN=yellow bold, INFO=black,DEBUG=magenta, TRACE=blue}][%style{%d{d-MM-yyyy:HH:mm:ss.SSS}}{green}]-%highlight{%l}-> %style{%m}{blue}%throwable{full}%n" />
         </Console>
     </Appenders>|
     <Loggers>

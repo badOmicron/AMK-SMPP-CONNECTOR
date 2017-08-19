@@ -5,10 +5,15 @@
  * Copyright: AMK Technologies, S.A. de C.V. 2017
  */
 
-package com.amk.smpp;
+package com.amk.smpp.core;
 
-import java.util.Arrays;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.validation.constraints.NotNull;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,12 +39,12 @@ import org.smpp.pdu.SubmitMultiSM;
 import org.smpp.pdu.SubmitMultiSMResp;
 import org.smpp.pdu.SubmitSM;
 import org.smpp.pdu.SubmitSMResp;
-import org.smpp.pdu.WrongDateFormatException;
-import org.smpp.pdu.WrongLengthOfStringException;
 import org.smpp.util.ByteBuffer;
 
+import com.amk.smpp.operation.PDUOperation;
+import com.amk.smpp.operation.PDUOperationTypes;
 import com.amk.smpp.rules.PDUOperationsValidator;
-import com.amk.smpp.util.SMPPUtil;
+import com.amk.smpp.util.OperationPropertiesUtil;
 
 /**
  * Internal implementation of the {@link SmppWrapperFacade}.<br/>
@@ -62,14 +67,14 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     /**
      * SMCS Connection.
      */
-    private Connection connection;
+    private Connection     connection;
     /**
      * Session for SMPP communication.
      */
-    private Session    session;
-
-    private boolean bound = false;
-
+    private Session        session;
+    /**
+     * Provides us the link with the SMSC.
+     */
     private BindingManager bindingManager;
 
     /**
@@ -99,6 +104,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
 
     /**
      * Executes the requested operation.
+     * @param <E> Classes that inherit from {@link Response}.
      * @param pduOperation requested Operation.
      * @return the SMCS response.
      * @see Response
@@ -110,9 +116,9 @@ public class AMKSmppFacade implements SmppWrapperFacade {
         PDUOperationsValidator.validNotEmpty(pduOperation);
         PDUOperationsValidator.validNotNull(bindingManager);
         bind(pduOperation);
+        LOGGER.debug("executeOperation: " + pduOperation.getOperationType());
         switch (pduOperation.getOperationType()) {
             case SUBMIT_SMS:
-                LOGGER.debug("executeOperation: SUBMIT_SMS");
                 return submit(pduOperation);
             case SUBMIT_SMS_MULTI:
                 return submitMulti(pduOperation);
@@ -123,62 +129,76 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             case REPLACE:
                 return replace(pduOperation);
             case CANCEL:
-                LOGGER.debug("executeOperation: CANCEL");
                 return cancel(pduOperation);
-            case RECEIVE:
-                receive(pduOperation, null);
-                break;
             case ENQUIRE:
                 break;
             default:
+                throw new IllegalArgumentException("Esa operacion no es permitida, usa el metodo receiveOperation(final PDUOperation pduOperation)");
         }
         return null;
     }
 
+    /**
+     * Executes the requested operation.
+     * @param <E> Classes that inherit from {@link Request}.
+     * @param pduOperation requested Operation.
+     * @return The SMCS response.
+     * @throws SmppException If an error occurs when performing the operation.
+     * @see Request
+     * @see PDUOperation
+     */
+    @Override
+    public < E extends Request > E receiveOperation(final PDUOperation pduOperation) throws SmppException {
+        final Request request;
+        init();
+        PDUOperationsValidator.validNotNull(pduOperation);
+        PDUOperationsValidator.validNotEmpty(pduOperation);
+        PDUOperationsValidator.validNotNull(bindingManager);
+        bind(pduOperation);
 
-    //    public static void main(String[] args) {
-    //        PDUOperation pduOperation = new PDUOperation();
-    //        pduOperation.setMessageId(UUID.randomUUID().toString());
-    //        pduOperation.setBindingType(BindingType.RX);
-    //        pduOperation.setSmsMessage("mi mensaje");
-    //        pduOperation.setOperationType(PDUOperationTypes.SUBMIT_SMS);
-    //        final PDUOperationProperties props = new PDUOperationProperties();
-    ////        new PDUOperationPropertiesBuilder().build()
-    //        props.setValidityPeriod("10");
-    //        pduOperation.setOperationProps(props);
-    //        PDUOperationsValidator.validSubmit(pduOperation);
-    //    }
+        LOGGER.debug("executeOperation: " + pduOperation.getOperationType());
+        if (PDUOperationTypes.RECEIVE.equals(pduOperation.getOperationType())) {
+            request = receive(pduOperation);
+        } else {
+            throw new IllegalArgumentException("Esa operacion no es permitida, usa el metodo executeOperation(final PDUOperation pduOperation)");
+        }
+        return (E) request;
+    }
 
-    private void bind(final PDUOperation pduOperation) throws SmppException {
-        LOGGER.debug("bind: ");
+    /**
+     * Search for link with SMSC.
+     * @param pduOperation You need to know the type of operation and the bind type.
+     * @throws SmppException If there is an error.
+     */
+    @CheckForNull
+    private void bind(@NotNull final PDUOperation pduOperation) throws SmppException {
         this.session = this.bindingManager.bind(pduOperation);
     }
 
     /**
      * Creates a new instance of <code>SubmitSM</code> class, lets you set
-     * subset of fields of it. This PDU is used to send SMS message
-     * to a device.
-     *
+     * subset of fields of it. This PDU is used to send SMS message to a device.
      * See "SMPP Protocol Specification 3.4, 4.4 SUBMIT_SM Operation."
-     * @param pduOperation - .
-     * @throws SmppException - .
+     * @param <E> Classes that inherit from {@link Response}.
+     * @param pduOperation Object containing the details of the operation.
+     * @throws SmppException If there is an error.
+     * @see PDUOperation
      * @see Session#submit(SubmitSM)
      * @see SubmitSM
      * @see SubmitSMResp
-     * @return response of the SMCS.
+     * @return response of the SMCS -> {@link SubmitSMResp}.
      * */
-    private < E extends Response > E submit(final PDUOperation pduOperation) throws SmppException {
+    @CheckForNull
+    private < E extends Response > E submit(@NotNull final PDUOperation pduOperation) throws SmppException {
         LOGGER.debug("executeOperation: submit");
-        SubmitSMResp response = new SubmitSMResp();
-        final SubmitSM request;
+        SubmitSMResp response = null;
         try {
-            request = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
-            assert request != null;
+            final SubmitSM request = OperationPropertiesUtil.setRequestProps(new SubmitSM(), pduOperation.getOperationProps());
             request.setShortMessage(pduOperation.getSmsMessage().getBody());
             request.assignSequenceNumber(true);
-//            request.setSmDefaultMsgId(props.getSmDefaultMsgId());
             final boolean asynchronous = pduOperation.isAsynchronous();
             if (asynchronous) {
+                LOGGER.debug("submit: async");
                 session.submit(request);
             } else {
                 response = session.submit(request);
@@ -191,29 +211,33 @@ public class AMKSmppFacade implements SmppWrapperFacade {
 
     /**
      * Creates a new instance of <code>SubmitMultiSM</code> class, lets you set
-     * subset of fields of it. This PDU is used to send SMS message
-     * to multiple devices.
-     *
+     * subset of fields of it. This PDU is used to send SMS message to multiple devices.
      * See "SMPP Protocol Specification 3.4, 4.5 SUBMIT_MULTI Operation."
+     * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
+     * @param <E> Classes that inherit from {@link Response}.
+     * @param pduOperation Object containing the details of the operation.
+     * @return response of the SMCS -> {@link SubmitMultiSMResp}.
+     * @throws SmppException If there is an error.
+     * @see PDUOperation
      * @see Session#submitMulti(SubmitMultiSM)
      * @see SubmitMultiSM
      * @see SubmitMultiSMResp
-     */
+     * */
     private < E extends Response > E submitMulti(final PDUOperation pduOperation) throws SmppException {
         LOGGER.debug(this.getClass().getName() + ".submitMulti()");
         SubmitMultiSMResp response = null;
-        final SubmitMultiSM requestMulti;
         try {
-            requestMulti = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
+            final SubmitMultiSM requestMulti = OperationPropertiesUtil.setRequestProps(new SubmitMultiSM(), pduOperation
+                    .getOperationProps());
             assert requestMulti != null;
             requestMulti.setShortMessage(pduOperation.getSmsMessage().getBody());
+            LOGGER.debug("submitMulti: DestAdresses: " + requestMulti.getNumberOfDests());
             // send the request
             final boolean asynchronous = pduOperation.isAsynchronous();
             if (asynchronous) {
                 session.submitMulti(requestMulti);
             } else {
                 response = session.submitMulti(requestMulti);
-                System.out.println("Submit Multi response " + response.debugString());
             }
         } catch (final Exception e) {
             throw new SmppException("Submit Multi operation failed. ", e);
@@ -226,10 +250,12 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * alternative to the <code>SubmitSM</code> and <code>DeliverSM</code>. It delivers the data to the specified
      * device.
      * See "SMPP Protocol Specification 3.4, 4.7 DATA_SM Operation."
-     * @param pduOperation
-     * @param <E>
-     * @return
-     * @throws SmppException .
+     * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
+     * @param <E> Classes that inherit from {@link Response}.
+     * @param pduOperation Object containing the details of the operation.
+     * @return response of the SMCS -> {@link DataSMResp}.
+     * @throws SmppException If there is an error.
+     * @see PDUOperation
      * @see Session#data(DataSM)
      * @see DataSM
      * @see DataSMResp
@@ -237,11 +263,15 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     private < E extends Response > E data(final PDUOperation pduOperation) throws SmppException {
         DataSMResp response = null;
         try {
-            final DataSM requestData = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
+            final DataSM requestData = OperationPropertiesUtil.setRequestProps(new DataSM(), pduOperation.getOperationProps());
             // send the request
             assert requestData != null;
             requestData.setAlertOnMsgDelivery(true);
-            requestData.setMessagePayload(new ByteBuffer(pduOperation.getSmsMessage().getBody().getBytes()));
+            requestData.setMessagePayload(
+                    new ByteBuffer(pduOperation.getSmsMessage()
+                            .getBody()
+                            .getBytes(Charset.forName(StandardCharsets.UTF_8.name())))
+            );
             // send the request
             final boolean asynchronous = pduOperation.isAsynchronous();
             if (asynchronous) {
@@ -249,7 +279,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             } else {
                 response = session.data(requestData);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new SmppException("Submit Data operation failed. ", e);
         }
         return (E) response;
@@ -262,12 +292,12 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * message id of the submitted message. The message id is assigned
      * by SMSC and is returned to you with the response to the submision
      * PDU (SubmitSM, DataSM etc.).
-     *
-     * @param pduOperation -
-     * @param <E> -
-     * @return
-     * @throws SmppException
      * See "SMPP Protocol Specification 3.4, 4.8 QUERY_SM Operation."
+     * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
+     * @param <E> Classes that inherit from {@link Response}.
+     * @param pduOperation Object containing the details of the operation.
+     * @return response of the SMCS -> {@link QuerySMResp}.
+     * @throws SmppException If there is an error.
      * @see Session#query(QuerySM)
      * @see QuerySM
      * @see QuerySMResp
@@ -275,10 +305,11 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     private < E extends Response > E query(final PDUOperation pduOperation) throws SmppException {
         QuerySMResp response = null;
         try {
-            final QuerySM requestQuery = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
+            final QuerySM requestQuery = OperationPropertiesUtil.setRequestProps(new QuerySM(), pduOperation.getOperationProps());
             // set values
             assert requestQuery != null;
             requestQuery.setMessageId(pduOperation.getSmsMessage().getId());
+            System.out.println(requestQuery.debugString());
             // send the request
             if (pduOperation.isAsynchronous()) {
                 session.query(requestQuery);
@@ -292,17 +323,26 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     }
 
     /**
-     *
-     * @param pduOperation
-     * @param <E>
-     * @return
-     * @throws SmppException
+     * * Creates a new instance of <code>ReplaceSM</code> class, lets you set
+     * subset of fields of it. This PDU is used to replace certain
+     * attributes of already submitted message providing that you 'remember'
+     * message id of the submitted message. The message id is assigned
+     * by SMSC and is returned to you with the response to the submision
+     * PDU (SubmitSM, DataSM etc.).
+     * See "SMPP Protocol Specification 3.4, 4.10 REPLACE_SM Operation."
+     * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
+     * @param <E> Classes that inherit from {@link Response}.
+     * @param pduOperation Object containing the details of the operation.
+     * @return response of the SMCS -> {@link ReplaceSMResp}.
+     * @throws SmppException If there is an error.
+     * @see Session#replace(ReplaceSM)
+     * @see ReplaceSM
+     * @see ReplaceSMResp
      */
     private < E extends Response > E replace(final PDUOperation pduOperation) throws SmppException {
-        final ReplaceSM request;
         ReplaceSMResp response = null;
         try {
-            request = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
+            final ReplaceSM request = OperationPropertiesUtil.setRequestProps(new ReplaceSM(), pduOperation.getOperationProps());
             assert request != null;
             request.setMessageId(pduOperation.getSmsMessage().getId());
             request.setShortMessage(pduOperation.getSmsMessage().getBody());
@@ -319,21 +359,28 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     }
 
     /**
-     *
-     * @param pduOperation
-     * @param <E>
-     * @return
-     * @throws SmppException
+     * * Creates a new instance of <code>CancelSM</code> class, lets you set
+     * subset of fields of it. This PDU is used to cancel an already
+     * submitted message. You can only cancel a message which haven't been
+     * delivered to the device yet.
+     * See "SMPP Protocol Specification 3.4, 4.9 CANCEL_SM Operation."
+     * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
+     * @param <E> Classes that inherit from {@link Response}.
+     * @param pduOperation Object containing the details of the operation.
+     * @return response of the SMCS -> {@link CancelSMResp}.
+     * @throws SmppException If there is an error.
+     * @see Session#cancel(CancelSM)
+     * @see CancelSM
+     * @see CancelSMResp
      */
     private < E extends Response > E cancel(final PDUOperation pduOperation) throws SmppException {
-        final CancelSM request;
         CancelSMResp response = null;
         try {
-            request = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
-            assert request != null;
+            final CancelSM request = OperationPropertiesUtil.setRequestProps(new CancelSM(), pduOperation.getOperationProps());
             request.setMessageId(pduOperation.getSmsMessage().getId());
             // send the request
             if (pduOperation.isAsynchronous()) {
+                LOGGER.debug("cancel: ASYNC");
                 session.cancel(request);
             } else {
                 response = session.cancel(request);
@@ -345,27 +392,35 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     }
 
     /**
-     * TODO -- Es necesario revisar la lógica de este procedimiento.
-     * @param pduOperation
-     * @param pduListener
-     * @throws SmppException
+     * Receives one PDU of any type from SMSC.
+     * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
+     * @param <E> Classes that inherit from {@link Request}.
+     * @param pduOperation Object containing the details of the operation.
+     * @return request of the SMCS -> {@link Request}.
+     * @throws SmppException If there is an error.
+     * @see Session#receive()
+     * @see PDU
      */
-    private void receive(final PDUOperation pduOperation, final PDUListener pduListener) throws SmppException {
-        long receiveTimeout = pduOperation.getOperationProps().getReceiveTimeout();
+    @CheckForNull
+    private < E extends Request > E receive(@Nonnull final PDUOperation pduOperation) throws SmppException {
+        final Response response;
+        PDU pdu = null;
+        long receiveTimeout = (Objects.isNull(pduOperation.getListener())) ? Data.RECEIVE_BLOCKING : pduOperation.getListener().getIntervalTime();
         if (receiveTimeout < 0) {
             receiveTimeout = Data.RECEIVE_BLOCKING;
         }
+        LOGGER.debug("receive: receiveTimeout : " + receiveTimeout + " miliseconds");
         try {
-            PDU pdu = null;
             final ServerPDUEvent pduEvent;
             LOGGER.debug("Going to receive a PDU. ");
             if (receiveTimeout == Data.RECEIVE_BLOCKING) {
-                LOGGER.debug("The receive is blocking, i.e. the application " + "will stop until a PDU will be received.");
+                LOGGER.warn("The receive is blocking, i.e. the application will stop until a PDU will be received.");
             } else {
                 LOGGER.info("The receive timeout is " + receiveTimeout / 1000 + " sec.");
             }
             if (pduOperation.isAsynchronous()) {
-                pduEvent = pduListener.getRequestEvent();
+                LOGGER.debug("receive: ASYNC");
+                pduEvent = pduOperation.getListener().getRequestEvent();
                 if (pduEvent != null) {
                     pdu = pduEvent.getPDU();
                 }
@@ -375,33 +430,46 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             if (pdu != null) {
                 LOGGER.debug("Received PDU " + pdu.debugString());
                 if (pdu.isRequest()) {
-                    final Response response = ((Request) pdu).getResponse();
+                    response = ((Request) pdu).getResponse();
                     // respond with default response
                     LOGGER.debug("Going to send default response to request " + response.debugString());
                     session.respond(response);
+                    response.setBody(pdu.getBody());
+                    response.setData(pdu.getData());
                 }
             } else {
                 LOGGER.debug("No PDU received this time.");
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Receiving failed. " + e);
+            throw new SmppException("Receiving failed. " + e);
         }
+        return (E) pdu;
     }
 
     /**
-     *
-     * @param pduOperation
-     * @param pduListener
-     * @return
-     * @throws SmppException
+     * Creates a new instance of <code>EnquireSM</code> class.
+     * This PDU is used to check that application level of the other party
+     * is alive. It can be sent both by SMSC and ESME.
+     * See "SMPP Protocol Specification 3.4, 4.11 ENQUIRE_LINK Operation."
+     * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
+     * @param pduOperation Object containing the details of the operation.
+     * @return response of the SMCS -> {@link EnquireLinkResp}.
+     * @throws SmppException If there is an error.
+     * @see Session#enquireLink(EnquireLink)
+     * @see EnquireLink
+     * @see EnquireLinkResp
      */
-    private Response enquireLink(final PDUOperation pduOperation, final PDUListener pduListener) throws SmppException {
-        final EnquireLink request;
+    private Response enquireLink(final PDUOperation pduOperation) throws SmppException {
         EnquireLinkResp response = null;
         try {
-            request = setRequestProps(pduOperation.getOperationType(), pduOperation.getOperationProps());
-            assert request != null;
-            request.setData(new ByteBuffer(pduOperation.getSmsMessage().getBody().getBytes()));
+            final EnquireLink request = new EnquireLink();
+            request.setData(
+                    new ByteBuffer(pduOperation
+                            .getSmsMessage()
+                            .getBody()
+                            .getBytes(Charset.forName(StandardCharsets.UTF_8.name())))
+            );
             response = new EnquireLinkResp();
             if (pduOperation.isAsynchronous()) {
                 session.enquireLink(request);
@@ -414,84 +482,6 @@ public class AMKSmppFacade implements SmppWrapperFacade {
         }
         return response;
     }
-
-    /**
-     *  Build the request.
-     * @param pPDUOperationType - TODO
-     * @param props Object with the properties of the message.
-     * @return The request with its properties.S
-     * @throws WrongLengthOfStringException If any value has exceeds the length.
-     * @throws WrongDateFormatException If any value does not comply with the format.
-     */
-    private < E extends Request > E setRequestProps(final PDUOperationTypes pPDUOperationType, final
-    PDUOperationProperties props) throws WrongLengthOfStringException, WrongDateFormatException {
-        LOGGER.debug("setRequestProps: ");
-        switch (pPDUOperationType) {
-            case SUBMIT_SMS:
-                LOGGER.debug(" setRequestProps: SUBMIT_SMS ");
-                final SubmitSM request = new SubmitSM();
-                // set values
-                request.setServiceType(props.getServiceType());
-                request.setSourceAddr(props.getSourceAddress());
-                Arrays.asList(props.getDestAddress()).forEach(request::setDestAddr);
-                request.setReplaceIfPresentFlag(props.getReplaceIfPresentFlag());
-//                request.setScheduleDeliveryTime(SMPPUtil.transformDate(props.getScheduleDeliveryTime()));
-                request.setValidityPeriod(props.getValidityPeriod());
-                request.setEsmClass(props.getEsmClass());
-                request.setProtocolId(props.getProtocolId());
-                request.setPriorityFlag(props.getPriorityFlag());
-                request.setRegisteredDelivery(props.getRegisteredDelivery());
-                request.setDataCoding(props.getDataCoding());
-                request.setSmDefaultMsgId(props.getSmDefaultMsgId());
-                return (E) request;
-            case SUBMIT_SMS_MULTI:
-                final SubmitMultiSM requestMulti = new SubmitMultiSM();
-                // set other values
-                requestMulti.setServiceType(props.getServiceType());
-                requestMulti.setSourceAddr(props.getSourceAddress());
-                requestMulti.setReplaceIfPresentFlag(props.getReplaceIfPresentFlag());
-                requestMulti.setScheduleDeliveryTime(SMPPUtil.transformDate(props.getScheduleDeliveryTime()));
-                requestMulti.setValidityPeriod(props.getValidityPeriod());
-                requestMulti.setEsmClass(props.getEsmClass());
-                requestMulti.setProtocolId(props.getProtocolId());
-                requestMulti.setPriorityFlag(props.getPriorityFlag());
-                requestMulti.setRegisteredDelivery(props.getRegisteredDelivery());
-                requestMulti.setDataCoding(props.getDataCoding());
-                requestMulti.setSmDefaultMsgId(props.getSmDefaultMsgId());
-                return (E) requestMulti;
-            case DATA:
-                final DataSM requestData = new DataSM();
-                // set values
-                requestData.setServiceType(props.getServiceType());
-                requestData.setSourceAddr(props.getSourceAddress());
-                Arrays.asList(props.getDestAddress()).forEach(requestData::setDestAddr);
-                requestData.setEsmClass(props.getEsmClass());
-                requestData.setRegisteredDelivery(props.getRegisteredDelivery());
-                requestData.setDataCoding(props.getDataCoding());
-                return (E) requestData;
-            case QUERY:
-                final QuerySM querySM = new QuerySM();
-                querySM.setSourceAddr(props.getSourceAddress());
-                return (E) querySM;
-            case REPLACE:
-                final ReplaceSM requestReplace = new ReplaceSM();
-                // set values
-                requestReplace.setSourceAddr(props.getSourceAddress());
-                requestReplace.setScheduleDeliveryTime(SMPPUtil.transformDate(props.getScheduleDeliveryTime()));
-                requestReplace.setValidityPeriod(props.getValidityPeriod());
-                requestReplace.setRegisteredDelivery(props.getRegisteredDelivery());
-                requestReplace.setSmDefaultMsgId(props.getSmDefaultMsgId());
-                return (E) requestReplace;
-            case CANCEL:
-                CancelSM requestCancel = new CancelSM();
-                requestCancel.setServiceType(props.getServiceType());
-                requestCancel.setSourceAddr(props.getSourceAddress());
-                Arrays.asList(props.getDestAddress()).forEach(requestCancel::setDestAddr);
-                return (E) requestCancel;
-        }
-        return null;
-    }
-
 
     /**
      * Getter for bindingManager.
@@ -508,4 +498,5 @@ public class AMKSmppFacade implements SmppWrapperFacade {
     public void setBindingManager(final BindingManager bindingManager) {
         this.bindingManager = bindingManager;
     }
+
 }
