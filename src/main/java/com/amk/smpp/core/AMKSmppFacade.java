@@ -131,11 +131,10 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             case CANCEL:
                 return cancel(pduOperation);
             case ENQUIRE:
-                break;
+                return (E) enquireLink(pduOperation);
             default:
                 throw new IllegalArgumentException("Esa operacion no es permitida, usa el metodo receiveOperation(final PDUOperation pduOperation)");
         }
-        return null;
     }
 
     /**
@@ -453,6 +452,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * is alive. It can be sent both by SMSC and ESME.
      * See "SMPP Protocol Specification 3.4, 4.11 ENQUIRE_LINK Operation."
      * @author Orlando Ramos &lt;orlando.ramos@amk-technologies.com&gt;
+     * @param <E> Classes that inherit from {@link Response}.
      * @param pduOperation Object containing the details of the operation.
      * @return response of the SMCS -> {@link EnquireLinkResp}.
      * @throws SmppException If there is an error.
@@ -460,8 +460,8 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * @see EnquireLink
      * @see EnquireLinkResp
      */
-    private Response enquireLink(final PDUOperation pduOperation) throws SmppException {
-        EnquireLinkResp response = null;
+    private < E extends Response > E enquireLink(final PDUOperation pduOperation) throws SmppException {
+        EnquireLinkResp response;
         try {
             final EnquireLink request = new EnquireLink();
             request.setData(
@@ -479,8 +479,9 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             }
         } catch (final Exception e) {
             LOGGER.error("Enquire Link operation failed. " + e);
+            throw new SmppException(e);
         }
-        return response;
+        return (E) response;
     }
 
     /**

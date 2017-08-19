@@ -3,11 +3,7 @@
          xsi:schemaLocation = "http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
          xmlns = "http://maven.apache.org/POM/4.0.0">
 	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>com.amk.dropwizard.platform</groupId>
-		<artifactId>plataforma-tiempo-aire</artifactId>
-		<version>0.0.1-SNAPSHOT</version>
-	</parent>
+	
 	
 	<groupId>com.amk</groupId>
 	<artifactId>amk-smpp-connector</artifactId>

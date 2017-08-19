@@ -12,10 +12,12 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.smpp.Connection;
+import org.smpp.ServerPDUEvent;
 import org.smpp.TCPIPConnection;
 import org.smpp.pdu.Address;
 import org.smpp.pdu.CancelSMResp;
 import org.smpp.pdu.DataSMResp;
+import org.smpp.pdu.EnquireLinkResp;
 import org.smpp.pdu.QuerySMResp;
 import org.smpp.pdu.ReplaceSMResp;
 import org.smpp.pdu.SubmitMultiSMResp;
@@ -26,6 +28,7 @@ import com.amk.smpp.operation.PDUOperationProperties;
 import com.amk.smpp.operation.PDUOperationPropertiesBuilder;
 import com.amk.smpp.operation.PDUOperationTypes;
 import com.amk.smpp.sim.SIMSimulator;
+import com.amk.smpp.util.BasicPDUListener;
 import com.amk.smpp.util.Message;
 
 /**
@@ -237,5 +240,33 @@ public class AMKSmppFacadeSyncSubmitTest {
         Assert.assertNotNull(response);
         simSimulator.messageStore.print();
         cancel(replace);
+    }
+
+    private void enquire() throws Exception {
+        LOGGER.debug("executeOperation: " + PDUOperationTypes.ENQUIRE);
+        Assert.assertNotNull(connection);
+        Assert.assertNotNull(smppFacade);
+        PDUOperationProperties props = new PDUOperationPropertiesBuilder()
+                .setSourceAddress(new Address("5529094190"))
+                .setDestAddress(new Address[]{new Address("5529094190")})
+                .build();
+        PDUOperation enquire = PDUOperation
+                .newBuilder()
+                .withOperationProps(props)
+                .withOperationType(PDUOperationTypes.ENQUIRE)
+                .withAsynchronous(true)
+                .withSmsMessage(new Message())
+                .withBindingType(BindingType.TRX)
+                .build();
+        BasicPDUListener listener = new BasicPDUListener();
+        listener.setIntervalTime(1000);
+        enquire.setListener(listener);
+        smppFacade.executeOperation(enquire);
+        ServerPDUEvent event = listener.getResponseEvent();
+        Assert.assertNotNull(event);
+        EnquireLinkResp response = new EnquireLinkResp();
+        response.setBody(event.getPDU().getBody());
+        Assert.assertNotNull(response.getBody());
+
     }
 }

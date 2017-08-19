@@ -16,6 +16,7 @@ import org.smpp.ServerPDUEvent;
 import org.smpp.TCPIPConnection;
 import org.smpp.pdu.Address;
 import org.smpp.pdu.DataSMResp;
+import org.smpp.pdu.EnquireLinkResp;
 import org.smpp.pdu.QuerySMResp;
 import org.smpp.pdu.ReplaceSMResp;
 import org.smpp.pdu.SubmitMultiSMResp;
@@ -145,6 +146,13 @@ public class AMKSmppFacadeASyncSubmitTest {
         setUpSimulator(30000);
         setUpConnection(30000);
         replace();
+    }
+
+    @Test
+    public void executeOperationEnquire() throws Exception {
+        setUpSimulator(31000);
+        setUpConnection(31000);
+        enquire();
     }
 
     private void submit() throws Exception {
@@ -366,5 +374,34 @@ public class AMKSmppFacadeASyncSubmitTest {
         ReplaceSMResp responseReplace = new ReplaceSMResp();
         responseReplace.setBody(event.getPDU().getBody());
         simSimulator.messageStore.print();
+    }
+
+
+    private void enquire() throws Exception {
+        LOGGER.debug("executeOperation: " + PDUOperationTypes.ENQUIRE);
+        Assert.assertNotNull(connection);
+        Assert.assertNotNull(smppFacade);
+        PDUOperationProperties props = new PDUOperationPropertiesBuilder()
+                .setSourceAddress(new Address("5529094190"))
+                .setDestAddress(new Address[]{new Address("5529094190")})
+                .build();
+        PDUOperation enquire = PDUOperation
+                .newBuilder()
+                .withOperationProps(props)
+                .withOperationType(PDUOperationTypes.ENQUIRE)
+                .withAsynchronous(true)
+                .withSmsMessage(new Message())
+                .withBindingType(BindingType.TRX)
+                .build();
+        BasicPDUListener listener = new BasicPDUListener();
+        listener.setIntervalTime(1000);
+        enquire.setListener(listener);
+        smppFacade.executeOperation(enquire);
+        ServerPDUEvent event = listener.getResponseEvent();
+        Assert.assertNotNull(event);
+        EnquireLinkResp response = new EnquireLinkResp();
+        response.setBody(event.getPDU().getBody());
+        Assert.assertNotNull(response.getBody());
+
     }
 }
