@@ -131,7 +131,7 @@ public class AMKSmppFacade implements SmppWrapperFacade {
             case CANCEL:
                 return cancel(pduOperation);
             case ENQUIRE:
-                return (E) enquireLink(pduOperation);
+                return enquireLink(pduOperation);
             default:
                 throw new IllegalArgumentException("Esa operacion no es permitida, usa el metodo receiveOperation(final PDUOperation pduOperation)");
         }
@@ -460,17 +460,11 @@ public class AMKSmppFacade implements SmppWrapperFacade {
      * @see EnquireLink
      * @see EnquireLinkResp
      */
-    private < E extends Response > E enquireLink(final PDUOperation pduOperation) throws SmppException {
-        EnquireLinkResp response;
+    @CheckForNull
+    private < E extends Response > E enquireLink(@NotNull final PDUOperation pduOperation) throws SmppException {
+        EnquireLinkResp response = null;
         try {
             final EnquireLink request = new EnquireLink();
-            request.setData(
-                    new ByteBuffer(pduOperation
-                            .getSmsMessage()
-                            .getBody()
-                            .getBytes(Charset.forName(StandardCharsets.UTF_8.name())))
-            );
-            response = new EnquireLinkResp();
             if (pduOperation.isAsynchronous()) {
                 session.enquireLink(request);
             } else {

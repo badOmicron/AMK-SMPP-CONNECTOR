@@ -376,7 +376,6 @@ public class AMKSmppFacadeASyncSubmitTest {
         simSimulator.messageStore.print();
     }
 
-
     private void enquire() throws Exception {
         LOGGER.debug("executeOperation: " + PDUOperationTypes.ENQUIRE);
         Assert.assertNotNull(connection);
@@ -400,8 +399,7 @@ public class AMKSmppFacadeASyncSubmitTest {
         ServerPDUEvent event = listener.getResponseEvent();
         Assert.assertNotNull(event);
         EnquireLinkResp response = new EnquireLinkResp();
-        response.setBody(event.getPDU().getBody());
-        Assert.assertNotNull(response.getBody());
+        Assert.assertNotNull(response);
 
     }
 }

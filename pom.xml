@@ -4,13 +4,11 @@
          xmlns = "http://maven.apache.org/POM/4.0.0">
 	<modelVersion>4.0.0</modelVersion>
 	
-	
 	<groupId>com.amk</groupId>
 	<artifactId>amk-smpp-connector</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>amk-smpp-connector</name>
 	<url>http://maven.apache.org</url>
-	
 	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -159,6 +157,7 @@
 				<filtering>true</filtering>
 			</resource>
 		</resources>
+		
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -339,6 +338,8 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!--The SCM Plugin offers vendor independent access to common scm commands by offering a set of command mappings-->
+			<!--for the configured scm. Each command is implemented as a goal.-->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-scm-plugin</artifactId>
@@ -353,6 +354,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-changelog-plugin</artifactId>
 				<version>2.3</version>
+				<configuration>
+					<basedir>${project.basedir}</basedir>
+					<headingDateFormat>'yyyy-MM-dd'</headingDateFormat>
+					<commentFormat>[]</commentFormat>
+					<outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
+				</configuration>
 			</plugin>
 			<!--
 			Performs a Maven release build from your current working copy. This release can be seen as an atomic

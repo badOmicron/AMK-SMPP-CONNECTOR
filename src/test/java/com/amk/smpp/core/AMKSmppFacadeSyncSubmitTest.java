@@ -12,7 +12,6 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.smpp.Connection;
-import org.smpp.ServerPDUEvent;
 import org.smpp.TCPIPConnection;
 import org.smpp.pdu.Address;
 import org.smpp.pdu.CancelSMResp;
@@ -28,7 +27,6 @@ import com.amk.smpp.operation.PDUOperationProperties;
 import com.amk.smpp.operation.PDUOperationPropertiesBuilder;
 import com.amk.smpp.operation.PDUOperationTypes;
 import com.amk.smpp.sim.SIMSimulator;
-import com.amk.smpp.util.BasicPDUListener;
 import com.amk.smpp.util.Message;
 
 /**
@@ -110,6 +108,7 @@ public class AMKSmppFacadeSyncSubmitTest {
     @Test
     public void executeOperation() throws Exception {
         setUpSimulator();
+        enquire();
         submit();
         data();
         multi();
@@ -165,7 +164,6 @@ public class AMKSmppFacadeSyncSubmitTest {
         Assert.assertNotNull(messageId);
         simSimulator.messageStore.print();
     }
-
 
     private void cancel(PDUOperation pduOperation) throws Exception {
         LOGGER.debug("cancel: TEST");
@@ -250,23 +248,17 @@ public class AMKSmppFacadeSyncSubmitTest {
                 .setSourceAddress(new Address("5529094190"))
                 .setDestAddress(new Address[]{new Address("5529094190")})
                 .build();
+        Message message = new Message();
+        message.setBody("Mensaje ENQUIRE");
         PDUOperation enquire = PDUOperation
                 .newBuilder()
                 .withOperationProps(props)
                 .withOperationType(PDUOperationTypes.ENQUIRE)
-                .withAsynchronous(true)
-                .withSmsMessage(new Message())
+                .withAsynchronous(false)
+                .withSmsMessage(message)
                 .withBindingType(BindingType.TRX)
                 .build();
-        BasicPDUListener listener = new BasicPDUListener();
-        listener.setIntervalTime(1000);
-        enquire.setListener(listener);
-        smppFacade.executeOperation(enquire);
-        ServerPDUEvent event = listener.getResponseEvent();
-        Assert.assertNotNull(event);
-        EnquireLinkResp response = new EnquireLinkResp();
-        response.setBody(event.getPDU().getBody());
-        Assert.assertNotNull(response.getBody());
-
+        EnquireLinkResp response = smppFacade.executeOperation(enquire);
+        Assert.assertNotNull(response);
     }
 }
